@@ -1,0 +1,428 @@
+🌱
+Plataforma digital para registrar,
+mapear y dar seguimiento a árboles sembrados
+Documento de requerimientos funcionales, arquitectura sugerida y prompt maestro para Google Antigravity
+PROPÓSITO DEL DOCUMENTO
+Convertir un proceso actualmente manual —entrega de plantones, registro mediante formulario, recepción de datos/fotos y publicación posterior— en una plataforma web automatizada, sencilla y escalable. La solución debe permitir que cada persona registre su siembra desde el celular y que cada árbol pueda aparecer, luego de validación, en un mapa público y en una ficha individual.
+Versión 1.1 — Arquitectura Supabase  |  Panamá  |  Septiembre de 2026
+Documento preparado para ser usado como contexto inicial y guía de implementación en Antigravity.
+1. Contexto y esencia del proyecto
+El proyecto nació como una iniciativa sin fines de lucro para entregar plantones de distintas especies de árboles a personas interesadas en sembrarlos y contribuir al ambiente. La intención no es solamente entregar el plantón, sino poder documentar dónde fue sembrado y construir con el tiempo un registro visible del impacto generado.
+El proceso original funciona de la siguiente manera:
+El responsable del proyecto entrega un plantón a una persona.
+Cuando la persona lo siembra, completa un formulario con sus datos, el tipo de árbol, las coordenadas y fotografías.
+La información llega a una hoja de cálculo de Google Sheets.
+El responsable revisa manualmente los datos y las fotografías.
+La información se publica manualmente en un sitio web y se desea representar también en un mapa con un punto por cada árbol sembrado.
+PROBLEMA A RESOLVER
+La carga manual de datos, imágenes y puntos en el sitio hace que el proyecto sea difícil de mantener y de escalar. La nueva plataforma debe automatizar ese flujo y dejar la intervención humana principalmente para revisar, corregir o aprobar registros.
+2. Objetivo general
+Construir una aplicación web moderna, adaptable a celular y de bajo costo operativo que permita registrar árboles sembrados, almacenar su evidencia fotográfica y geográfica, administrarlos desde un panel privado y publicarlos automáticamente en un mapa interactivo y en una ficha pública por árbol.
+Objetivos específicos
+Reducir al mínimo el trabajo manual después de cada registro.
+Permitir que el formulario capture la ubicación GPS del dispositivo con autorización del usuario.
+Guardar fotografías y datos de forma organizada y segura.
+Crear un mapa público que muestre los árboles registrados y permita filtrarlos.
+Generar una ficha o página individual para cada árbol.
+Contar con un panel administrativo para validar, editar, aprobar, rechazar o eliminar registros.
+Mantener la posibilidad de exportar o sincronizar los datos con Google Sheets para análisis y respaldo.
+Diseñar la solución para que posteriormente pueda incorporar patrocinadores, jornadas de reforestación, instituciones, escuelas, códigos QR y seguimiento del crecimiento.
+3. Principios de diseño que debe respetar Antigravity
+Principio
+Aplicación práctica
+Mobile first
+La mayoría de los registros se harán desde un teléfono en el lugar de siembra.
+Simplicidad
+El formulario debe poder completarse en pocos minutos, con instrucciones claras y campos mínimos.
+Automatización
+Una sola captura debe alimentar la base de datos, el panel, el mapa y la ficha pública sin volver a digitar información.
+Privacidad
+Los datos de contacto nunca deben mostrarse públicamente. La persona debe poder elegir cómo aparece su nombre y qué precisión de ubicación desea publicar.
+Bajo costo
+Priorizar servicios con capa gratuita o costos controlables y evitar dependencias innecesarias.
+Escalabilidad
+La estructura debe soportar desde decenas hasta miles de árboles sin rediseñar la aplicación.
+Trazabilidad
+Cada registro debe tener un identificador único, fecha de creación, estado y registro de cambios.
+Accesibilidad
+Contraste adecuado, textos legibles, botones grandes y navegación sencilla.
+4. Flujo ideal del usuario
+1. Recibe el plantón: 
+La persona recibe el árbol y una tarjeta, enlace o código QR que lleva al formulario de registro.
+2. Siembra el árbol: 
+Cuando realiza la siembra, abre el formulario desde su teléfono.
+3. Captura ubicación: 
+Pulsa “Usar mi ubicación”. El navegador solicita permiso y obtiene latitud, longitud y, si está disponible, precisión del GPS.
+4. Completa información: 
+Selecciona especie/tipo, fecha, nombre público y otros datos solicitados.
+5. Sube evidencia: 
+Toma o selecciona 1 a 3 fotografías del árbol sembrado.
+6. Envía registro: 
+El sistema valida los campos, crea un ID único y guarda datos + fotografías.
+7. Revisión: 
+El registro queda “Pendiente”. El administrador recibe una notificación o lo ve en el panel.
+8. Publicación: 
+Al aprobarse, el punto aparece automáticamente en el mapa y se crea/activa la ficha pública del árbol.
+9. Seguimiento: 
+Opcionalmente se puede invitar al participante a subir una foto de seguimiento después de varios meses.
+5. Módulos funcionales requeridos
+A. Página de inicio / landing pública
+Explicar en pocas palabras la misión del proyecto y cómo participar.
+Mostrar indicadores: árboles registrados, especies distintas, provincias/distritos representados y/o jornadas realizadas.
+Botones principales: “Registrar un árbol”, “Ver mapa” y “Conocer el proyecto”.
+Diseño natural, limpio, optimista y no recargado.
+B. Formulario de registro de siembra
+Formulario web propio dentro de la plataforma; no depender obligatoriamente de Google Forms.
+Captura de ubicación mediante API de geolocalización del navegador con botón “Usar mi ubicación”.
+Mostrar confirmación visual de la ubicación en un mini mapa antes de enviar.
+Permitir 1 a 3 fotografías, con compresión de imagen para evitar archivos excesivamente grandes.
+Validaciones obligatorias y mensajes de error comprensibles.
+Consentimiento de tratamiento/publicación de información y fotografías.
+Pantalla final con número de registro y mensaje de agradecimiento.
+C. Mapa público interactivo
+Mostrar un marcador por cada árbol aprobado.
+Al tocar un marcador, mostrar especie, fecha, fotografía principal, ubicación general y enlace “Ver ficha”.
+Filtros por especie, provincia/distrito, año y/o jornada.
+Clustering de marcadores cuando existan muchos puntos cercanos.
+Contador dinámico de árboles visibles según filtros.
+Botón para centrar el mapa en la ubicación actual del visitante, con permiso.
+D. Ficha pública de cada árbol
+URL única y compartible, por ejemplo /arbol/ARB-2026-000123.
+Fotografía principal y galería.
+Especie o nombre del árbol.
+Fecha de siembra.
+Ubicación general y mini mapa.
+Nombre público del participante solo si autorizó mostrarlo.
+Estado de seguimiento y futuras fotografías, si se habilita esta función.
+E. Panel administrativo
+Acceso protegido exclusivamente para administradores.
+Lista de registros con estados: Pendiente, Aprobado, Rechazado, Requiere corrección.
+Búsqueda y filtros por fecha, especie, ubicación y estado.
+Vista previa de fotografías y mapa.
+Editar campos antes de aprobar.
+Aprobar o rechazar con un clic.
+Exportar registros a CSV/Excel y, opcionalmente, sincronizar con Google Sheets.
+Dashboard básico con totales y tendencias.
+F. Gestión de catálogo
+Catálogo de especies con nombre común, nombre científico opcional, descripción corta, imagen de referencia y estado activo/inactivo.
+Permitir agregar nuevas especies desde el panel sin modificar código.
+Opcional: asociar especie con recomendaciones de cuidado.
+6. Datos que debe manejar el sistema
+Registro de plantación
+Campo
+Tipo
+Req.
+Notas
+ID del árbol
+Automático
+Sí
+Ej. ARB-2026-000123. Nunca editable por el participante.
+Fecha/hora de registro
+Automático
+Sí
+Timestamp del servidor.
+Fecha de siembra
+Fecha
+Sí
+Puede ser hoy o una fecha anterior.
+Nombre del participante
+Texto
+Sí
+Dato administrativo; no publicarlo completo por defecto.
+Nombre a mostrar públicamente
+Texto
+No
+Ej. “Familia Rodríguez”, “Escuela X” o “Anónimo”.
+Correo electrónico
+Email
+No
+Solo para contacto/seguimiento. Privado.
+Teléfono
+Texto
+No
+Privado. No mostrar en el mapa.
+Especie / tipo de árbol
+Catálogo
+Sí
+Seleccionado desde catálogo administrable.
+Latitud
+Número
+Sí
+Capturada por GPS o seleccionada en mapa.
+Longitud
+Número
+Sí
+Capturada por GPS o seleccionada en mapa.
+Precisión GPS
+Número
+No
+Metros reportados por el dispositivo.
+Provincia / distrito / corregimiento
+Texto/derivado
+No
+Puede obtenerse por geocodificación inversa o elegirse manualmente.
+Fotografías
+Archivos
+Sí
+1 a 3 imágenes.
+Comentario
+Texto largo
+No
+Observaciones sobre el lugar o la siembra.
+Privacidad de ubicación
+Opción
+Sí
+Exacta / aproximada / no pública.
+Consentimiento
+Booleano
+Sí
+Aceptación explícita.
+Estado
+Sistema
+Sí
+Pendiente / Aprobado / Rechazado / Corrección.
+Fecha de aprobación
+Automático
+No
+Se completa al aprobar.
+Administrador que aprobó
+Sistema
+No
+Auditoría.
+REGLA DE PRIVACIDAD RECOMENDADA
+Guardar internamente las coordenadas exactas, pero permitir que el participante elija si la ubicación pública será exacta, aproximada o no visible. Para una vivienda privada, la plataforma puede redondear/desplazar ligeramente el punto público para evitar exponer la ubicación exacta. Los datos de contacto deben permanecer siempre privados.
+7. Automatizaciones que debe implementar la solución
+Al enviar el formulario, generar automáticamente el ID del árbol y crear el registro en la base de datos.
+Subir las fotografías al almacenamiento y guardar sus URLs asociadas al registro.
+Calcular o guardar provincia/distrito mediante geocodificación inversa cuando sea posible.
+Asignar el estado inicial “Pendiente”.
+Mostrar de inmediato el registro en el panel del administrador.
+Opcional: enviar una notificación por correo al administrador indicando que existe un nuevo registro.
+Al aprobar, cambiar el estado, registrar quién aprobó y publicar automáticamente el punto en el mapa.
+Activar la ficha pública del árbol sin tener que crear una página manualmente.
+Opcional: enviar al participante un correo de confirmación con el ID y enlace de su árbol.
+Permitir exportación programada o sincronización con Google Sheets para conservar el flujo de análisis existente.
+Crear copias de seguridad o mecanismos de recuperación definidos por la plataforma elegida.
+8. Arquitectura técnica sugerida
+Como el proyecto ya trabaja con Supabase, se recomienda usarlo como backend principal. Antigravity debe conectarse al proyecto Supabase mediante MCP cuando esté disponible, para inspeccionar el esquema real y trabajar con la base de datos sin duplicar estructuras. La interfaz puede construirse con Next.js/React y el mapa puede usar Google Maps Platform, MapLibre o Leaflet según costo y preferencia.
+Componente
+Recomendación
+Frontend web
+Next.js/React con TypeScript, diseño responsive y PWA opcional.
+Backend / lógica
+Supabase Edge Functions y/o lógica server-side de Next.js para operaciones sensibles, automatizaciones e integraciones externas.
+Base de datos
+Supabase PostgreSQL. Usar tablas normalizadas para árboles, especies, perfiles administrativos, seguimientos, jornadas y auditoría.
+Geodatos
+Habilitar PostGIS en Supabase y almacenar la ubicación como geography(Point, 4326), conservando latitud/longitud para interoperabilidad cuando sea útil.
+Autenticación
+Supabase Auth para administradores. El registro público de una siembra no debe exigir cuenta.
+Autorización
+Row Level Security (RLS) en todas las tablas accesibles desde la aplicación. Las vistas públicas deben devolver únicamente registros aprobados y campos no sensibles.
+Fotografías
+Supabase Storage. Usar buckets y políticas RLS; separar evidencia privada de imágenes públicas si la estrategia de privacidad lo requiere.
+Automatizaciones
+Database Functions/Triggers y Edge Functions para generación de IDs, auditoría, notificaciones, geocodificación y tareas posteriores a la aprobación.
+Hosting
+Frontend desplegable en Vercel, Netlify u otro hosting compatible con Next.js. Mantener Supabase como backend independiente.
+Mapa
+Google Maps Platform como opción principal, o MapLibre/Leaflet para reducir costos. Implementar clustering y carga por área visible.
+Integración Antigravity
+Conectar el Supabase MCP Server en Antigravity cuando esté disponible, con permisos mínimos necesarios, para inspeccionar esquema, SQL y contexto del proyecto.
+Analítica
+Métricas internas desde SQL/views y Google Analytics opcional para tráfico web.
+Compatibilidad con Sheets
+Google Sheets API o Apps Script solo como exportación/sincronización opcional; Supabase debe ser la fuente de verdad.
+ANTES DE INICIAR EN ANTIGRAVITY
+Conecta el proyecto Supabase mediante MCP desde Settings → Customizations → Installed MCP Servers, usando el servidor de Supabase si está disponible. Concede solamente los permisos necesarios y evita entregar service-role keys al frontend. Mantén Google Maps Platform como integración opcional para mapas/geocodificación; si priorizas costo, usa MapLibre o Leaflet.
+Alternativa de menor costo para el mapa
+Si el costo de Google Maps Platform se vuelve una prioridad, Antigravity puede implementar el mapa con Leaflet/MapLibre y un proveedor de teselas compatible. La arquitectura debe dejar el proveedor de mapas desacoplado para poder cambiarlo sin reescribir la base de datos ni el flujo de registros.
+9. Seguridad, privacidad y calidad de datos
+No exponer claves de API, credenciales ni secretos en el frontend o repositorio público.
+Restringir el panel administrativo con autenticación y reglas de autorización.
+Configurar Row Level Security (RLS) en todas las tablas expuestas y políticas de acceso en Supabase Storage siguiendo el principio de mínimo privilegio.
+Validar tipo, tamaño y cantidad de imágenes antes de almacenarlas.
+Evitar que un usuario público pueda modificar registros ya enviados mediante llamadas directas a la base de datos.
+Usar validación del lado cliente y del servidor para campos críticos.
+Registrar timestamps de servidor para auditoría.
+Implementar protección básica contra spam/bots cuando el formulario sea público.
+No mostrar correos, teléfonos ni datos privados en la API pública, mapa o HTML generado.
+Mantener un mecanismo de eliminación/corrección de datos si un participante lo solicita.
+10. Pantallas mínimas que debe construir Antigravity
+Pantalla
+Función principal
+Inicio
+Presentación, estadísticas, llamadas a la acción y acceso al mapa.
+Registrar árbol
+Formulario paso a paso o de una sola pantalla, optimizado para móvil.
+Confirmación
+Número de registro y próximos pasos.
+Mapa
+Mapa a pantalla amplia, filtros y tarjetas de resultados.
+Ficha del árbol
+Detalle público de un árbol aprobado.
+Sobre el proyecto
+Historia, objetivo y forma de participar/colaborar.
+Login administrador
+Acceso privado.
+Dashboard administrador
+Métricas y accesos rápidos.
+Registros
+Tabla/lista de registros, filtros y acciones.
+Detalle administrativo
+Edición, fotos, mapa, aprobación/rechazo.
+Especies
+CRUD de catálogo.
+Configuración
+Datos generales del proyecto, textos y opciones de privacidad.
+11. Indicadores y estadísticas deseadas
+Total de árboles entregados (si luego se registra esta fase).
+Total de árboles sembrados/registrados.
+Total de registros aprobados y pendientes.
+Árboles por especie.
+Árboles por provincia, distrito o corregimiento.
+Registros por mes/año.
+Número de participantes (sin exponer información personal).
+Porcentaje de árboles con seguimiento posterior, cuando esta función se habilite.
+12. Funciones futuras previstas — no bloquear la arquitectura
+Códigos QR impresos por plantón para vincular entrega y posterior siembra.
+Registro previo de plantones entregados y control de inventario.
+Jornadas/campañas con nombre, fecha, institución y ubicación.
+Perfiles de escuelas, empresas u organizaciones participantes.
+Seguimiento del árbol a los 3, 6 y 12 meses con nuevas fotografías.
+Sistema de logros o certificados digitales de participación.
+Panel público de impacto ambiental y estadísticas históricas.
+Donaciones o patrocinio futuro, manteniendo separada la esencia sin fines de lucro.
+Importación de los registros históricos existentes en Google Sheets.
+Generación de códigos QR para cada ficha pública.
+13. Criterios de aceptación del MVP
+☐ Una persona puede abrir la web desde un teléfono y registrar un árbol sin crear una cuenta.
+☐ La ubicación puede capturarse desde el GPS o elegirse/corregirse manualmente en el mapa.
+☐ El sistema admite fotografías y las asocia correctamente al registro.
+☐ El administrador puede iniciar sesión y ver el nuevo registro en estado Pendiente.
+☐ El administrador puede corregir datos y aprobar el registro.
+☐ Al aprobar, el árbol aparece en el mapa público sin editar páginas manualmente.
+☐ Cada árbol aprobado dispone de una URL pública individual.
+☐ Los filtros del mapa funcionan y no muestran registros rechazados/pendientes.
+☐ Los datos privados no son visibles en el mapa ni en la ficha pública.
+☐ La aplicación funciona correctamente en Chrome móvil y escritorio y tiene un diseño responsive.
+☐ Existe documentación README con instalación, variables de entorno, conexión Supabase, migraciones SQL, RLS, Storage, despliegue y tareas pendientes.
+☐ Existen datos demo y pruebas mínimas del flujo crítico de registro → aprobación → publicación.
+14. Plan de implementación sugerido para Antigravity
+Fase 1 — Diseño y arquitectura
+ — Crear plan, modelo de datos, wireframes, reglas de privacidad y estructura del proyecto.
+Fase 2 — MVP funcional — Implementar landing, formulario, ubicación, fotos, Supabase Database/Storage, Supabase Auth, panel de aprobación, mapa y ficha pública.
+Fase 3 — Validación
+ — Probar el flujo completo en móvil, permisos GPS, imágenes, errores, reglas de seguridad y rendimiento del mapa.
+Fase 4 — Migración
+ — Preparar importador para registros existentes de Google Sheets y fotografías históricas, si aplica.
+Fase 5 — Mejoras
+ — Añadir estadísticas, seguimiento, QR, jornadas y sincronización con Sheets según prioridad.
+15. Prompt maestro listo para entregar a Google Antigravity
+INSTRUCCIÓN DE USO
+Copia desde “PROMPT” hasta el final de esta sección y pégalo como primera tarea en un Project de Antigravity. Adjunta también este documento al proyecto si la herramienta permite usarlo como contexto. Pídele que primero genere un Plan/Implementation Plan y que no empiece a desplegar recursos de pago hasta presentarte el plan.
+PROMPT
+Quiero que actúes como arquitecto de software, desarrollador full-stack, diseñador UX/UI y especialista en Supabase y aplicaciones geográficas. Debes construir una aplicación web de producción para un proyecto ambiental sin fines de lucro cuyo objetivo es entregar plantones y registrar dónde son sembrados.
+CONTEXTO DEL PROYECTO
+Actualmente entrego plantones de distintas especies. Cuando una persona siembra el árbol, registra datos, coordenadas y fotografías. Ese proceso antes se hacía con Google Forms + Google Sheets y luego yo publicaba manualmente la información en un sitio. Quiero eliminar ese trabajo manual.
+YA UTILIZO SUPABASE
+Supabase debe ser el backend principal y la fuente de verdad del proyecto. Si Antigravity tiene acceso al Supabase MCP Server, úsalo para inspeccionar el proyecto y su esquema real antes de crear tablas o migraciones. No dupliques estructuras existentes ni elimines datos sin mi autorización.
+OBJETIVO
+Construye una plataforma donde una persona pueda registrar la siembra desde su teléfono; el sistema capture ubicación, datos y fotos; el registro quede pendiente de revisión; y, al aprobarlo un administrador, el árbol aparezca automáticamente en un mapa público y tenga una ficha pública individual.
+REQUERIMIENTOS PRINCIPALES
+1. Web responsive y mobile-first en español.
+2. Landing pública con misión, estadísticas y botones “Registrar un árbol” y “Ver mapa”.
+3. Formulario público sin necesidad de crear cuenta.
+4. Geolocalización mediante el navegador con botón “Usar mi ubicación”, mostrando un mini mapa y permitiendo corregir el punto manualmente.
+5. Campos: fecha de siembra, nombre del participante, nombre público opcional, email/teléfono opcionales y privados, especie, ubicación geográfica, precisión GPS, ubicación administrativa, 1 a 3 fotos, comentario, preferencia de privacidad de ubicación y consentimiento.
+6. Generar automáticamente un ID con formato similar a ARB-YYYY-000001.
+7. Guardar registros en estado Pendiente.
+8. Panel administrador protegido con Supabase Auth.
+9. Administrador puede listar, buscar, filtrar, editar, aprobar, rechazar y eliminar registros según permisos.
+10. Cuando un registro se aprueba, debe aparecer automáticamente en el mapa público.
+11. Mapa con clustering y filtros por especie, ubicación y año.
+12. Popup de marcador con foto, especie, fecha y enlace a ficha del árbol.
+13. Ficha pública con URL única para cada árbol aprobado.
+14. Los datos privados nunca deben enviarse ni renderizarse en vistas públicas.
+15. Soportar ubicación pública exacta, aproximada o no visible; la coordenada exacta puede conservarse solo en backend cuando el usuario seleccione privacidad.
+16. Catálogo administrable de especies.
+17. Exportación CSV y dejar preparada integración opcional con Google Sheets.
+18. Dashboard administrativo con totales y distribución básica por especie, fecha y ubicación.
+19. Dejar preparado el sistema para jornadas, códigos QR, seguimiento con nuevas fotos, inventario de plantones e importación histórica desde Google Sheets.
+STACK PREFERIDO
+- Frontend: Next.js/React + TypeScript, salvo que exista una razón técnica mejor documentada.
+- Backend y base de datos: Supabase PostgreSQL.
+- Geodatos: habilitar PostGIS y almacenar el punto geográfico con SRID 4326. Mantener latitud/longitud derivables para interoperabilidad.
+- Autenticación: Supabase Auth para administradores.
+- Archivos: Supabase Storage para fotografías.
+- Seguridad: Row Level Security (RLS) en tablas y Storage.
+- Lógica segura/automatizaciones: Supabase Edge Functions, Database Functions y/o Triggers cuando corresponda.
+- Mapa: Google Maps Platform como primera opción si ya está disponible; de lo contrario MapLibre o Leaflet con proveedor de teselas compatible.
+- Hosting del frontend: Vercel, Netlify o equivalente compatible con Next.js. Supabase permanece como backend independiente.
+MODELO DE DATOS
+Diseña migraciones SQL versionadas. Como mínimo considera entidades para trees/plantings, species, profiles/admin_roles, tree_photos, followups, campaigns y audit_log. Separa los campos privados de los datos que puedan exponerse públicamente. Si ya existen tablas en mi Supabase, inspecciónalas primero y adapta el diseño en vez de reemplazarlas.
+GEODATOS Y PRIVACIDAD
+- Guarda internamente el punto exacto cuando exista consentimiento.
+- Usa PostGIS para consultas por área visible, distancia y escalabilidad futura.
+- Implementa una representación pública de ubicación separada de la ubicación exacta cuando la privacidad sea “aproximada”.
+- Nunca expongas coordenadas privadas mediante consultas públicas, vistas, RPC o respuestas del servidor.
+SEGURIDAD
+- Diseña RLS desde el inicio y habilítalo en cada tabla expuesta por la Data API.
+- El público solo debe poder crear un registro a través del flujo autorizado y consultar datos públicos aprobados.
+- El panel administrativo requiere Supabase Auth y un rol autorizado.
+- No uses service_role key en el navegador ni la incluyas en código público.
+- Valida datos tanto en cliente como en servidor/función.
+- Limita cantidad, formato y tamaño de fotografías.
+- Define políticas de Storage para uploads y lectura pública/privada según el estado del registro.
+- Implementa protección razonable contra spam/bots y rate limiting cuando sea necesario.
+- No publiques email, teléfono ni coordenadas privadas.
+- Usa timestamps del servidor y registra auditoría de aprobación/cambios.
+AUTOMATIZACIONES
+- Al registrar: crear ID, insertar registro Pendiente, subir fotos y asociarlas.
+- Al aprobar: guardar aprobador/fecha, activar visibilidad pública y reflejar automáticamente el árbol en mapa y ficha.
+- Opcionalmente: ejecutar geocodificación inversa mediante Edge Function y guardar provincia/distrito/corregimiento.
+- Opcionalmente: enviar confirmaciones/notificaciones sin exponer secretos en el cliente.
+- Mantener Supabase como fuente de verdad; Google Sheets solo como exportación o integración secundaria.
+EXPERIENCIA DE USUARIO
+- Diseño natural, limpio y ambiental, sin aspecto genérico de plantilla de IA.
+- Excelente experiencia móvil.
+- Formularios de pocos pasos, instrucciones cortas y botones grandes.
+- Estados de carga, confirmación y errores claros.
+- Accesibilidad básica WCAG: contraste, labels, teclado y textos alternativos.
+- Optimiza imágenes antes o durante la subida.
+FLUJO CRÍTICO A PROBAR
+Registro público → captura GPS → subida de fotos a Supabase Storage → creación Pendiente en PostgreSQL → login admin con Supabase Auth → revisión/edición → aprobación → aparición automática en mapa → apertura de ficha pública.
+ENTREGABLES
+1. Antes de codificar, crea un Implementation Plan con arquitectura, modelo de datos, diagrama de flujo, esquema SQL, políticas RLS, buckets/políticas de Storage, rutas/pantallas y fases.
+2. Si existe un Supabase existente conectado por MCP, inspecciona primero el esquema, extensiones, funciones, buckets y políticas relevantes; no hagas cambios destructivos.
+3. Genera migraciones SQL reproducibles y versionadas para todo cambio de base de datos.
+4. Construye el MVP completo.
+5. Crea datos de prueba sin mezclar datos demo con producción.
+6. Ejecuta pruebas del flujo crítico y revisa la interfaz en navegador móvil y escritorio.
+7. Incluye README con configuración local, variables de entorno, Supabase, proveedor de mapas, despliegue, migraciones, RLS y mantenimiento.
+8. Documenta cualquier servicio que pueda generar costos antes de habilitarlo.
+9. No despliegues recursos con costo ni elimines/modifiques datos existentes de producción sin mi autorización explícita.
+10. Al terminar cada fase, presenta un resumen claro de lo construido, decisiones tomadas y pendientes.
+IMPORTANTE
+La automatización es prioritaria: no quiero copiar manualmente registros del formulario a la web ni crear marcadores/páginas uno por uno. Un registro aprobado debe reflejarse automáticamente en el mapa y en su ficha pública. Supabase es la fuente de verdad.
+Empieza creando el Implementation Plan y el esquema SQL/RLS propuesto. No hagas cambios destructivos ni habilites servicios con facturación hasta que el plan haya sido revisado.
+16. Decisiones que conviene dejar configurables
+Nombre definitivo, logo y dominio del proyecto.
+Si los registros se publican siempre con aprobación manual o si algunos pueden autoaprobarse.
+Cantidad máxima y peso de fotografías.
+Nivel predeterminado de privacidad de ubicación.
+Campos opcionales del participante.
+Proveedor de mapas y límites de consumo/costos.
+Si habrá correo automático de confirmación.
+Si Google Sheets será solo exportación o una sincronización bidireccional.
+Si se importarán registros históricos desde el sistema anterior.
+RESULTADO ESPERADO
+Al finalizar el MVP, el trabajo cotidiano del responsable debería reducirse a revisar los registros pendientes y aprobarlos. Todo lo demás —guardar datos, alojar fotos, actualizar estadísticas, mostrar el marcador y generar la ficha pública— debe ocurrir automáticamente.
+17. Referencias técnicas para Antigravity
+Estas referencias son útiles para orientar a Antigravity en la integración con Supabase, geodatos y mapas:
+Google Antigravity Docs — MCP: https://antigravity.google/docs/mcp
+Supabase Docs — Next.js: https://supabase.com/docs/guides/getting-started/quickstarts/nextjs
+Supabase Docs — Row Level Security / Secure Data: https://supabase.com/docs/guides/database/secure-data
+Supabase Docs — Storage Access Control: https://supabase.com/docs/guides/storage/security/access-control
+Supabase Docs — Edge Functions: https://supabase.com/docs/guides/functions
+Supabase Docs — PostGIS / Geo Queries: https://supabase.com/docs/guides/database/extensions/postgis

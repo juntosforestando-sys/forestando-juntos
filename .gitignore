@@ -1,0 +1,12 @@
+# Archivos temporales y de sistema
+*.tmp
+*.log
+.DS_Store
+
+# Cache de Python
+__pycache__/
+*.pyc
+
+# Archivos de entorno y temporales
+.env
+.env.local
