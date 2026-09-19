@@ -25,6 +25,24 @@ async function initApp() {
     setupEventListeners();
     handleHashRouting();
     updateStatsCounter();
+    
+    // Registrar Service Worker para soporte offline en campo
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js')
+            .then(() => console.log('Service Worker de Forestando Juntos activo (Modo Offline)'))
+            .catch(err => console.warn('Error registrando Service Worker:', err));
+    }
+
+    // Escuchar cuando el dispositivo vuelva a tener señal
+    window.addEventListener('online', () => {
+        showToast('📶 Conexión a internet restablecida. Sincronizando registros capturados...');
+        syncOfflineTrees();
+    });
+
+    // Intentar sincronizar si hay pendientes acumulados
+    if (navigator.onLine) {
+        syncOfflineTrees();
+    }
 }
 
 let supabaseClient = null;
@@ -510,6 +528,7 @@ async function handleFormSubmit(e) {
         location_description: locationDesc,
         privacy_level: 'exact',
         status: 'pending', // Siempre queda pendiente por defecto
+        synced: false, // Flag de sincronización offline
         notes: notes,
         primary_photo_url: state.selectedPhotos[0] || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80',
         created_at: new Date().toISOString()
@@ -523,7 +542,7 @@ async function handleFormSubmit(e) {
 
     // Enviar a la nube de Supabase si está activo
     const sb = getSupabaseClient();
-    if (sb) {
+    if (sb && navigator.onLine) {
         sb.from('trees').insert({
             planter_name: planterName,
             public_name: publicName,
@@ -539,14 +558,20 @@ async function handleFormSubmit(e) {
             status: 'pending',
             notes: notes
         }).select().then(({ data: dbTree, error }) => {
-            if (!error && dbTree && dbTree[0] && state.selectedPhotos[0]) {
-                sb.from('tree_photos').insert({
-                    tree_id: dbTree[0].id,
-                    url: state.selectedPhotos[0],
-                    is_primary: true
-                }).then(() => console.log('Foto guardada en Supabase Cloud.'));
+            if (!error && dbTree && dbTree[0]) {
+                newTree.synced = true;
+                saveTreesToStorage();
+                if (state.selectedPhotos[0]) {
+                    sb.from('tree_photos').insert({
+                        tree_id: dbTree[0].id,
+                        url: state.selectedPhotos[0],
+                        is_primary: true
+                    }).then(() => console.log('Foto guardada en Supabase Cloud.'));
+                }
             }
-        }).catch(err => console.warn('Error enviando a Supabase:', err));
+        }).catch(err => console.warn('Guardado offline en dispositivo. Se sincronizará al conectar a internet:', err));
+    } else {
+        showToast('📍 Registro guardado localmente en tu teléfono. Se enviará cuando tengas internet.');
     }
 
     // Mostrar modal de éxito con el ID del árbol
@@ -559,6 +584,58 @@ async function handleFormSubmit(e) {
     document.getElementById('form-registro').reset();
     state.selectedPhotos = [];
     document.getElementById('photo-preview-container').innerHTML = '';
+}
+
+// Sincronización automática de registros capturados sin internet
+async function syncOfflineTrees() {
+    if (!navigator.onLine) return;
+    const sb = getSupabaseClient();
+    if (!sb) return;
+
+    const unsynced = state.trees.filter(t => t.synced === false);
+    if (!unsynced.length) return;
+
+    console.log(`[Offline Sync] Sincronizando ${unsynced.length} registros capturados sin internet...`);
+    let count = 0;
+
+    for (const tree of unsynced) {
+        try {
+            const { data: dbTree, error } = await sb.from('trees').insert({
+                planter_name: tree.planter_name,
+                public_name: tree.public_name,
+                email: tree.email,
+                phone: tree.phone,
+                custom_species_name: tree.species_name,
+                planting_date: tree.planting_date,
+                latitude: tree.latitude,
+                longitude: tree.longitude,
+                province: tree.province,
+                location_description: tree.location_description,
+                privacy_level: 'exact',
+                status: tree.status || 'pending',
+                notes: tree.notes
+            }).select();
+
+            if (!error && dbTree && dbTree[0]) {
+                tree.synced = true;
+                count++;
+                if (tree.primary_photo_url && tree.primary_photo_url.startsWith('data:')) {
+                    await sb.from('tree_photos').insert({
+                        tree_id: dbTree[0].id,
+                        url: tree.primary_photo_url,
+                        is_primary: true
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn('Error en la sincronización offline:', e);
+        }
+    }
+    
+    if (count > 0) {
+        saveTreesToStorage();
+        showToast(`📶 ¡Se enviaron automáticamente ${count} árbol(es) registrados sin internet!`);
+    }
 }
 
 function sendWhatsAppConfirmation() {
