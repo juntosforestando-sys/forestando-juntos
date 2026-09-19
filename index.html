@@ -65,7 +65,6 @@
                     <button onclick="showView('registrar')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-sm transition-all ml-2">
                         + Registrar Árbol
                     </button>
-                    <button onclick="showView('admin')" class="px-3 py-2 text-slate-400 hover:text-slate-600 transition-colors ml-4 text-xs border-l border-slate-200">Panel Admin 🔒</button>
                 </nav>
 
                 <!-- Mobile Menu Button -->
@@ -85,7 +84,6 @@
             <button onclick="showView('home'); document.getElementById('mobile-menu').classList.add('hidden')" class="block w-full text-left px-3 py-2 rounded-lg font-medium hover:bg-emerald-50">Inicio</button>
             <button onclick="showView('mapa'); document.getElementById('mobile-menu').classList.add('hidden')" class="block w-full text-left px-3 py-2 rounded-lg font-medium hover:bg-emerald-50">Mapa Público</button>
             <button onclick="showView('registrar'); document.getElementById('mobile-menu').classList.add('hidden')" class="block w-full text-left px-3 py-2 bg-emerald-600 text-white font-semibold rounded-lg">Registrar un Árbol</button>
-            <button onclick="showView('admin'); document.getElementById('mobile-menu').classList.add('hidden')" class="block w-full text-left px-3 py-2 text-slate-500 text-xs">Panel de Administración</button>
         </div>
     </header>
 
@@ -493,6 +491,7 @@
             <p class="text-slate-500">Plataforma digital para el registro, mapeo y monitoreo de siembra de árboles.</p>
             <p class="pt-2 text-slate-400 text-[11px] border-t border-slate-100 w-fit mx-auto px-6">
                 Desarrollado por <span class="font-bold text-emerald-800">Nando Compusystem</span> © 2026 • Todos los derechos reservados
+                <span class="inline-block ml-2 text-slate-300">• <a href="#admin" onclick="showView('admin')" class="hover:text-slate-500 transition-colors opacity-50" title="Acceso Administrativo">🔒</a></span>
             </p>
         </div>
     </footer>
