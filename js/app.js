@@ -700,7 +700,7 @@ async function sendAdminEmailNotification(tree) {
         ? SUPABASE_CONFIG.adminEmail
         : '';
 
-    if (!adminEmail || adminEmail === 'admin@forestandojuntos.org') return;
+    if (!adminEmail) return;
 
     try {
         await fetch('https://formsubmit.co/ajax/' + encodeURIComponent(adminEmail), {
