@@ -1,9 +1,8 @@
-// Configuración centralizada de Supabase para Forestando Juntos
-
 const SUPABASE_CONFIG = {
-    url: "https://your-supabase-project.supabase.co",
-    anonKey: "your-anon-key-here",
-    useFallback: true
+    url: "https://wxchapqelujpuwgbffkg.supabase.co",
+    anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4Y2hhcHFlbHVqcHV3Z2JmZmtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjY2MjgwMjcsImV4cCI6MjA0MjIwNDAyN30.Zz6C7gA9WqQv5NfD4J0K8_m5L2X1Y3Z5",
+    useFallback: false,
+    adminPhone: "50760000000" // Cambia este número por tu número de WhatsApp de administrador
 };
 
 // Dataset inicial completo con los 15 registros extraídos del Excel histórico

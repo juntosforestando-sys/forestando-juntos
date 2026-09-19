@@ -662,6 +662,33 @@ function sendWhatsAppConfirmation() {
     window.open(waUrl, '_blank');
 }
 
+function sendAdminNotificationWhatsApp() {
+    if (!lastSubmittedTree) return;
+
+    const adminPhone = (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG.adminPhone)
+        ? SUPABASE_CONFIG.adminPhone.replace(/\D/g, '')
+        : '';
+
+    const message = encodeURIComponent(
+        `🚨 *¡NUEVO ÁRBOL REGISTRADO (PENDIENTE)!* 🌳\n\n` +
+        `📋 *Código:* ${lastSubmittedTree.code}\n` +
+        `👤 *Sembrador:* ${lastSubmittedTree.planter_name}\n` +
+        `📞 *Teléfono:* ${lastSubmittedTree.phone || 'No especificado'}\n` +
+        `🌳 *Especie:* ${lastSubmittedTree.species_name}\n` +
+        `📍 *Provincia:* ${lastSubmittedTree.province}\n` +
+        `📍 *Coordenadas:* ${lastSubmittedTree.latitude}, ${lastSubmittedTree.longitude}\n` +
+        `📅 *Fecha:* ${lastSubmittedTree.planting_date}\n\n` +
+        `👉 *Entra al panel admin para revisar y aprobar:* \n` +
+        `${window.location.origin}/#admin`
+    );
+
+    const waUrl = adminPhone 
+        ? `https://wa.me/${adminPhone}?text=${message}`
+        : `https://api.whatsapp.com/send?text=${message}`;
+
+    window.open(waUrl, '_blank');
+}
+
 function closeSuccessModal() {
     const modal = document.getElementById('modal-success');
     if (modal) modal.classList.add('hidden');

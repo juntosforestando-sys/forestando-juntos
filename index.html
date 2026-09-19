@@ -345,10 +345,15 @@
                     El registro se encuentra en estado <strong>Pendiente</strong>. Tan pronto sea validado por el administrador, aparecerá automáticamente en el mapa público.
                 </p>
                 
-                <!-- Botón de Envío de Confirmación por WhatsApp -->
-                <button type="button" onclick="sendWhatsAppConfirmation()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow">
-                    💬 Recibir Confirmación en WhatsApp
-                </button>
+                <!-- Botones de Envío por WhatsApp -->
+                <div class="space-y-2 pt-2">
+                    <button type="button" onclick="sendWhatsAppConfirmation()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow text-sm">
+                        💬 Recibir Confirmación en WhatsApp
+                    </button>
+                    <button type="button" onclick="sendAdminNotificationWhatsApp()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow text-sm">
+                        🔔 Notificar al Administrador (Aviso de Registro)
+                    </button>
+                </div>
                 <button type="button" onclick="closeSuccessModal()" class="w-full py-2.5 text-slate-500 hover:text-slate-700 text-xs font-semibold">
                     Cerrar ventana
                 </button>
