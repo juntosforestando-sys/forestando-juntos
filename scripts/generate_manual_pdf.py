@@ -113,7 +113,7 @@ def build_pdf():
     <font color="#065f46" size="14"><b>FORESTANDO JUNTOS — PANAMÁ 🇵🇦</b></font><br/>
     <font color="#64748b" size="9"><i>"De mano en mano, reforestando Panamá"</i></font><br/>
     <font color="#334155" size="8"><b>Plataforma Digital de Registro, Mapeo y Monitoreo Ambiental</b></font><br/>
-    <font color="#047857" size="8">Enlace Oficial: <a href="https://forestando-juntos.netlify.app"><u>https://forestando-juntos.netlify.app</u></a></font>
+    <font color="#047857" size="8">Enlace Oficial: <a href="https://forestandojuntos.org"><u>https://forestandojuntos.org</u></a></font>
     """
     header_para = Paragraph(header_text_html, styles['Normal'])
 
@@ -156,7 +156,7 @@ def build_pdf():
 
     steps = [
         ("PASO 1: Ingreso a la Plataforma Web", [
-            "• Abra el navegador de su teléfono o computadora e ingrese al enlace oficial: <a href='https://forestando-juntos.netlify.app'><b><u>https://forestando-juntos.netlify.app</u></b></a>",
+            "• Abra el navegador de su teléfono o computadora e ingrese al enlace oficial: <a href='https://forestandojuntos.org'><b><u>https://forestandojuntos.org</u></b></a>",
             "• En la barra superior o menú principal, haga clic en el botón verde <b>+ Registrar Árbol</b>."
         ]),
         ("PASO 2: Identificación del Sembrador", [
@@ -221,7 +221,7 @@ def build_pdf():
     footer_html = """
     <b>Plataforma Digital Forestando Juntos — Panamá</b><br/>
     Desarrollado por <b>Nando Compusystem © 2026</b> • Todos los derechos reservados<br/>
-    Enlace Web: <a href="https://forestando-juntos.netlify.app"><u>https://forestando-juntos.netlify.app</u></a> | Contacto: <u>juntosforestando@gmail.com</u>
+    Enlace Web: <a href="https://forestandojuntos.org"><u>https://forestandojuntos.org</u></a> | Contacto: <u>juntosforestando@gmail.com</u>
     """
     story.append(Paragraph(footer_html, styles['FooterText']))
 
