@@ -896,16 +896,26 @@ function focusTreeOnMap(code) {
 
 function handleAdminLogin(e) {
     e.preventDefault();
-    const email = document.getElementById('admin-email').value.trim();
+    const email = document.getElementById('admin-email').value.trim().toLowerCase();
     const pass = document.getElementById('admin-password').value.trim();
 
-    if (email && pass) {
+    const validEmail = (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG.adminEmail)
+        ? SUPABASE_CONFIG.adminEmail.toLowerCase()
+        : 'juntosforestando@gmail.com';
+
+    const validPass = (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG.adminPassword)
+        ? SUPABASE_CONFIG.adminPassword
+        : 'Forestando2026!';
+
+    if (email === validEmail && pass === validPass) {
         state.isAdminLoggedIn = true;
         renderAdminDashboard();
         if (state.map) renderMapMarkers();
         showToast('🔓 Sesión de Administrador iniciada. Modo edición de mapa activado.');
+        document.getElementById('admin-email').value = '';
+        document.getElementById('admin-password').value = '';
     } else {
-        alert('Por favor ingresa usuario y contraseña de administrador.');
+        alert('❌ Correo electrónico o contraseña de administrador incorrectos.');
     }
 }
 
