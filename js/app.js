@@ -574,6 +574,9 @@ async function handleFormSubmit(e) {
         showToast('📍 Registro guardado localmente en tu teléfono. Se enviará cuando tengas internet.');
     }
 
+    // Disparar notificación automática por correo electrónico al administrador
+    sendAdminEmailNotification(newTree);
+
     // Mostrar modal de éxito con el ID del árbol
     const modalCode = document.getElementById('success-tree-code');
     if (modalCode) modalCode.textContent = treeCode;
@@ -687,6 +690,45 @@ function sendAdminNotificationWhatsApp() {
         : `https://api.whatsapp.com/send?text=${message}`;
 
     window.open(waUrl, '_blank');
+}
+
+// Notificación automática por correo electrónico al administrador
+async function sendAdminEmailNotification(tree) {
+    if (!navigator.onLine) return;
+    
+    const adminEmail = (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG.adminEmail)
+        ? SUPABASE_CONFIG.adminEmail
+        : '';
+
+    if (!adminEmail || adminEmail === 'admin@forestandojuntos.org') return;
+
+    try {
+        await fetch('https://formsubmit.co/ajax/' + encodeURIComponent(adminEmail), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                _subject: `🚨 ¡Nuevo Árbol Registrado (PENDIENTE)! - ${tree.code}`,
+                _template: 'table',
+                "Código de Registro": tree.code,
+                "Nombre del Sembrador": tree.planter_name,
+                "Especie de Árbol": tree.species_name,
+                "Provincia": tree.province,
+                "Ubicación Exacta": tree.location_description || 'No especificada',
+                "Coordenadas": `${tree.latitude}, ${tree.longitude}`,
+                "Fecha de Siembra": tree.planting_date,
+                "Teléfono de Contacto": tree.phone || 'No indicado',
+                "Email de Contacto": tree.email || 'No indicado',
+                "Notas del Sembrador": tree.notes || 'Ninguna',
+                "Enlace al Panel de Administración": `${window.location.origin}/#admin`
+            })
+        });
+        console.log('[Email Notification] Alerta de nuevo árbol enviada al correo del administrador.');
+    } catch (err) {
+        console.warn('Error al enviar correo de notificación al administrador:', err);
+    }
 }
 
 function closeSuccessModal() {
