@@ -127,3 +127,8 @@ body {
   background-color: #fee2e2;
   color: #991b1b;
 }
+.badge-dead {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}

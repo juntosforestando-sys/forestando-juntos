@@ -440,7 +440,7 @@
                 </div>
 
                 <!-- Métricas Admin -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div class="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex justify-between items-center">
                         <div>
                             <p class="text-xs text-amber-800 font-bold uppercase">Solicitudes Pendientes</p>
@@ -451,10 +451,18 @@
 
                     <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl flex justify-between items-center">
                         <div>
-                            <p class="text-xs text-emerald-800 font-bold uppercase">Árboles Aprobados</p>
+                            <p class="text-xs text-emerald-800 font-bold uppercase">Árboles Activos (Vivos)</p>
                             <p class="text-2xl font-extrabold text-emerald-900" id="admin-approved-count">0</p>
                         </div>
-                        <div class="text-2xl">✅</div>
+                        <div class="text-2xl">🌿</div>
+                    </div>
+
+                    <div class="bg-rose-50 border border-rose-200 p-4 rounded-2xl flex justify-between items-center">
+                        <div>
+                            <p class="text-xs text-rose-800 font-bold uppercase">Árboles Dados de Baja</p>
+                            <p class="text-2xl font-extrabold text-rose-900" id="admin-dead-count">0</p>
+                        </div>
+                        <div class="text-2xl">🥀</div>
                     </div>
                 </div>
 

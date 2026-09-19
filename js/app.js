@@ -232,10 +232,11 @@ function populateFilterDropdowns() {
 
 // Actualizar Contador Estadístico de la Landing Page
 function updateStatsCounter() {
-    const approvedTrees = state.trees.filter(t => t.status === 'approved' || !t.status);
-    const totalCount = approvedTrees.length;
-    const speciesCount = new Set(approvedTrees.map(t => t.species_name)).size;
-    const provincesCount = new Set(approvedTrees.map(t => t.province)).size;
+    // Registros históricos válidos (aprobados y dados de baja) para no perder la estadística de siembras realizadas
+    const historicalTrees = state.trees.filter(t => t.status === 'approved' || t.status === 'dead' || t.status === 'baja' || !t.status);
+    const totalCount = historicalTrees.length;
+    const speciesCount = new Set(historicalTrees.map(t => t.species_name)).size;
+    const provincesCount = new Set(historicalTrees.map(t => t.province)).size;
 
     const elTotal = document.getElementById('stat-total-trees');
     const elSpecies = document.getElementById('stat-species-count');
@@ -365,16 +366,26 @@ function renderMapMarkers() {
         state.activeMarkers = [];
     }
 
-    const approvedTrees = state.trees.filter(t => t.status === 'approved');
+    // Mostrar árboles aprobados (verdes) y árboles dados de baja (rojos)
+    const visibleTrees = state.trees.filter(t => t.status === 'approved' || t.status === 'dead' || t.status === 'baja');
     
-    const filteredTrees = approvedTrees.filter(t => {
+    const filteredTrees = visibleTrees.filter(t => {
         const matchesSpecies = state.selectedSpeciesFilter === 'all' || t.species_name === state.selectedSpeciesFilter;
         const matchesProvince = state.selectedProvinceFilter === 'all' || t.province === state.selectedProvinceFilter;
         return matchesSpecies && matchesProvince;
     });
 
-    const treeIcon = L.icon({
+    const greenTreeIcon = L.icon({
         iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+
+    const redTreeIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
         shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
         iconSize: [25, 41],
         iconAnchor: [12, 41],
@@ -385,10 +396,16 @@ function renderMapMarkers() {
     const bounds = [];
 
     filteredTrees.forEach(t => {
+        const isDead = t.status === 'dead' || t.status === 'baja';
+        const markerIcon = isDead ? redTreeIcon : greenTreeIcon;
+        const badgeHtml = isDead 
+            ? `<span class="inline-block text-xs font-bold px-2 py-0.5 bg-rose-100 text-rose-800 rounded mb-1">${t.code} • Dado de Baja 🥀</span>`
+            : `<span class="inline-block text-xs font-semibold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded mb-1">${t.code}</span>`;
+
         const popupHtml = `
             <div class="p-3 text-left">
                 <img src="${t.primary_photo_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80'}" class="w-full h-32 object-cover rounded-lg mb-2">
-                <span class="inline-block text-xs font-semibold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded mb-1">${t.code}</span>
+                ${badgeHtml}
                 ${state.isAdminLoggedIn ? '<span class="inline-block text-xs font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded mb-1 ml-1">🔓 Arrastra para mover</span>' : ''}
                 <h4 class="font-bold text-gray-900 text-sm leading-tight">${t.species_name}</h4>
                 <p class="text-xs text-gray-500 mb-1">Sembrado por: <strong>${t.public_name}</strong></p>
@@ -401,7 +418,7 @@ function renderMapMarkers() {
 
         const isDraggable = !!state.isAdminLoggedIn;
         const marker = L.marker([t.latitude, t.longitude], { 
-            icon: treeIcon, 
+            icon: markerIcon, 
             draggable: isDraggable 
         }).bindPopup(popupHtml);
 
@@ -831,8 +848,9 @@ function renderAdminDashboard() {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50 transition-colors border-b border-gray-100 text-sm';
         
-        const badgeClass = t.status === 'approved' ? 'badge-approved' : t.status === 'rejected' ? 'badge-rejected' : 'badge-pending';
-        const statusLabel = t.status === 'approved' ? 'Aprobado' : t.status === 'rejected' ? 'Rechazado' : 'Pendiente';
+        const isDead = t.status === 'dead' || t.status === 'baja';
+        const badgeClass = t.status === 'approved' ? 'badge-approved' : isDead ? 'badge-dead' : t.status === 'rejected' ? 'badge-rejected' : 'badge-pending';
+        const statusLabel = t.status === 'approved' ? 'Aprobado 🌿' : isDead ? 'Dado de Baja 🥀' : t.status === 'rejected' ? 'Rechazado' : 'Pendiente';
 
         tr.innerHTML = `
             <td class="py-3 px-4 font-mono font-bold text-gray-800">${t.code}</td>
@@ -849,16 +867,21 @@ function renderAdminDashboard() {
                 </span>
             </td>
             <td class="py-3 px-4 text-right space-x-1">
-                <button onclick="focusTreeOnMap('${t.code}')" class="px-2.5 py-1 bg-amber-50 border border-amber-300 text-amber-800 hover:bg-amber-100 text-xs font-semibold rounded transition-colors" title="Ajustar posición en el mapa">
+                <button onclick="focusTreeOnMap('${t.code}')" class="px-2 py-1 bg-amber-50 border border-amber-300 text-amber-800 hover:bg-amber-100 text-xs font-semibold rounded transition-colors" title="Ajustar posición en el mapa">
                     📍 Reubicar
                 </button>
                 ${t.status !== 'approved' ? `
-                    <button onclick="updateTreeStatus('${t.id}', 'approved')" class="px-3 py-1 bg-emerald-600 text-white text-xs font-semibold rounded hover:bg-emerald-700">
-                        Aprobar
+                    <button onclick="updateTreeStatus('${t.id}', 'approved')" class="px-2 py-1 bg-emerald-600 text-white text-xs font-semibold rounded hover:bg-emerald-700" title="Aprobar árbol (pin verde en mapa)">
+                        🌿 Aprobar
+                    </button>
+                ` : ''}
+                ${!isDead ? `
+                    <button onclick="updateTreeStatus('${t.id}', 'dead')" class="px-2 py-1 bg-rose-600 text-white text-xs font-semibold rounded hover:bg-rose-700" title="Dar de baja árbol no sobreviviente (pin rojo en mapa)">
+                        🥀 Baja
                     </button>
                 ` : ''}
                 ${t.status !== 'rejected' ? `
-                    <button onclick="updateTreeStatus('${t.id}', 'rejected')" class="px-3 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded hover:bg-red-200">
+                    <button onclick="updateTreeStatus('${t.id}', 'rejected')" class="px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded hover:bg-red-200">
                         Rechazar
                     </button>
                 ` : ''}
@@ -869,9 +892,15 @@ function renderAdminDashboard() {
 
     const pendingCount = state.trees.filter(t => t.status === 'pending').length;
     const approvedCount = state.trees.filter(t => t.status === 'approved').length;
+    const deadCount = state.trees.filter(t => t.status === 'dead' || t.status === 'baja').length;
     
-    document.getElementById('admin-pending-count').textContent = pendingCount;
-    document.getElementById('admin-approved-count').textContent = approvedCount;
+    const elPending = document.getElementById('admin-pending-count');
+    const elApproved = document.getElementById('admin-approved-count');
+    const elDead = document.getElementById('admin-dead-count');
+
+    if (elPending) elPending.textContent = pendingCount;
+    if (elApproved) elApproved.textContent = approvedCount;
+    if (elDead) elDead.textContent = deadCount;
 }
 
 function focusTreeOnMap(code) {
@@ -927,13 +956,29 @@ function logoutAdmin() {
 }
 
 function updateTreeStatus(treeId, newStatus) {
-    const tree = state.trees.find(t => t.id === treeId);
+    const tree = state.trees.find(t => t.id === treeId || t.code === treeId);
     if (tree) {
         tree.status = newStatus;
         saveTreesToStorage();
+
+        // Actualizar estado en la nube de Supabase Cloud
+        const sb = getSupabaseClient();
+        if (sb) {
+            sb.from('trees').update({ status: newStatus }).eq('code', tree.code)
+                .then(() => console.log(`[Supabase] Estado de ${tree.code} actualizado a ${newStatus}`))
+                .catch(err => console.warn('Error al actualizar estado en Supabase:', err));
+        }
+
         renderAdminDashboard();
         updateStatsCounter();
         if (state.map) renderMapMarkers();
+
+        const statusMsg = (newStatus === 'dead' || newStatus === 'baja')
+            ? '🥀 Árbol dado de baja (marcador rojo activo en el mapa).' 
+            : newStatus === 'approved' 
+            ? '🌿 Árbol activo (marcador verde en el mapa).' 
+            : '❌ Árbol rechazado.';
+        showToast(`Estado de ${tree.code} actualizado: ${statusMsg}`);
     }
 }
 

@@ -121,6 +121,7 @@ SELECT
     t.province,
     t.district,
     t.location_description,
+    t.status,
     t.created_at,
     (
         SELECT url FROM public.tree_photos tp 
@@ -130,7 +131,7 @@ SELECT
     ) AS primary_photo_url
 FROM public.trees t
 LEFT JOIN public.species s ON t.species_id = s.id
-WHERE t.status = 'approved' AND t.privacy_level != 'hidden';
+WHERE (t.status = 'approved' OR t.status = 'dead' OR t.status = 'baja') AND t.privacy_level != 'hidden';
 
 -- 6. POLÍTICAS DE SEGURIDAD A NIVEL DE FILA (ROW LEVEL SECURITY - RLS)
 ALTER TABLE public.species ENABLE ROW LEVEL SECURITY;
