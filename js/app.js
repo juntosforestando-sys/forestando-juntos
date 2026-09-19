@@ -644,12 +644,15 @@ function sendWhatsAppConfirmation() {
     const cleanPhone = (lastSubmittedTree.phone || '').replace(/\D/g, '');
     const message = encodeURIComponent(
         `🌱 *¡Hola ${lastSubmittedTree.planter_name}!*\n\n` +
-        `¡Muchas gracias por contribuir al planeta registrando tu siembra en *Forestando Juntos*!\n\n` +
-        `📋 *Código de Registro:* ${lastSubmittedTree.code}\n` +
+        `¡Felicidades y muchas gracias por sembrar vida y futuro en Panamá! 🇵🇦🌳\n\n` +
+        `Queremos confirmarte que tu siembra ha sido registrada exitosamente en la plataforma *Forestando Juntos*:\n\n` +
+        `📋 *Código Único:* ${lastSubmittedTree.code}\n` +
         `🌳 *Especie:* ${lastSubmittedTree.species_name}\n` +
-        `📍 *Provincia:* ${lastSubmittedTree.province}\n\n` +
-        `Tu registro ha sido guardado con éxito y pronto aparecerá en el mapa público interactivo.\n\n` +
-        `_De mano en mano, reforestando Panamá._ 🇵🇦`
+        `📍 *Provincia:* ${lastSubmittedTree.province}\n` +
+        `📅 *Fecha de Siembra:* ${lastSubmittedTree.planting_date}\n\n` +
+        `Una vez validada por el equipo, podrás ver tu árbol marcado en el mapa interactivo.\n\n` +
+        `*¡Gracias por dejar tu huella verde!* 💚\n` +
+        `_De mano en mano, reforestando Panamá._`
     );
 
     const waUrl = cleanPhone 
