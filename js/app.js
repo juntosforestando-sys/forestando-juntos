@@ -1074,4 +1074,18 @@ function setupEventListeners() {
             });
         });
     }
+
+    // Limpieza activa del DOM para remover cualquier widget flotante de Netlify
+    const purgeNetlifyBadge = () => {
+        document.querySelectorAll('a[href*="netlify"], iframe[src*="netlify"], [class*="netlify"], [id*="netlify"], [data-netlify]').forEach(el => {
+            if (el.tagName !== 'LINK' && el.tagName !== 'SCRIPT') {
+                el.style.display = 'none';
+                el.style.visibility = 'hidden';
+                el.style.opacity = '0';
+                try { el.remove(); } catch (e) {}
+            }
+        });
+    };
+    purgeNetlifyBadge();
+    setInterval(purgeNetlifyBadge, 1000);
 }
