@@ -1,0 +1,18 @@
+name: Supabase Cloud Keep-Alive
+
+on:
+  schedule:
+    # Corre automáticamente cada 3 días para prevenir la pausa de Supabase
+    - cron: '0 12 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Cloud API
+        run: |
+          curl -s -f "https://wxchapqelujpuwgbffkg.supabase.co/rest/v1/public_trees?select=id&limit=1" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4Y2hhcHFlbHVqcHV3Z2JmZmtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjY2MjgwMjcsImV4cCI6MjA0MjIwNDAyN30.Zz6C7gA9WqQv5NfD4J0K8_m5L2X1Y3Z5" \
+            -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4Y2hhcHFlbHVqcHV3Z2JmZmtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjY2MjgwMjcsImV4cCI6MjA0MjIwNDAyN30.Zz6C7gA9WqQv5NfD4J0K8_m5L2X1Y3Z5"
+          echo "Ping de mantenimiento ejecutado con éxito a Supabase Cloud."
