@@ -173,6 +173,10 @@ function showView(viewId, params = {}) {
             if (dateInput && !dateInput.value) {
                 dateInput.value = new Date().toISOString().split('T')[0];
             }
+            const latInput = document.getElementById('input-lat');
+            const lngInput = document.getElementById('input-lng');
+            if (latInput && !latInput.value) latInput.value = state.currentFormCoords.lat.toFixed(6);
+            if (lngInput && !lngInput.value) lngInput.value = state.currentFormCoords.lng.toFixed(6);
         }, 150);
     } else if (viewId === 'arbol' && params.code) {
         renderTreeProfile(params.code);
@@ -319,6 +323,11 @@ function initFormMap() {
     const container = document.getElementById('form-map');
     if (!container || state.formMap) return;
 
+    const latInput = document.getElementById('input-lat');
+    const lngInput = document.getElementById('input-lng');
+    if (latInput && !latInput.value) latInput.value = state.currentFormCoords.lat.toFixed(6);
+    if (lngInput && !lngInput.value) lngInput.value = state.currentFormCoords.lng.toFixed(6);
+
     state.formMap = L.map('form-map').setView([state.currentFormCoords.lat, state.currentFormCoords.lng], 13);
 
     // Servidor Google Maps Callejero
@@ -331,8 +340,8 @@ function initFormMap() {
 
     state.userMarker.on('dragend', function (e) {
         const coord = e.target.getLatLng();
-        document.getElementById('input-lat').value = coord.lat.toFixed(6);
-        document.getElementById('input-lng').value = coord.lng.toFixed(6);
+        if (latInput) latInput.value = coord.lat.toFixed(6);
+        if (lngInput) lngInput.value = coord.lng.toFixed(6);
         state.currentFormCoords = { lat: coord.lat, lng: coord.lng };
     });
 }
