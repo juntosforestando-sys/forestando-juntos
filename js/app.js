@@ -119,18 +119,7 @@ function fallbackLocalData() {
         try {
             const parsed = JSON.parse(savedTrees);
             if (Array.isArray(parsed) && parsed.length > 0) {
-                const demoCodes = new Set(DEMO_TREES.map(t => t.code));
-                const userTrees = parsed.filter(t => !demoCodes.has(t.code) || t.status === 'pending');
-                
-                const combinedMap = new Map();
-                userTrees.forEach(t => combinedMap.set(t.code || t.id, t));
-                DEMO_TREES.forEach(t => {
-                    if (!combinedMap.has(t.code)) {
-                        combinedMap.set(t.code, t);
-                    }
-                });
-                state.trees = Array.from(combinedMap.values());
-                saveTreesToStorage();
+                state.trees = parsed;
                 return;
             }
         } catch (err) {
@@ -1134,4 +1123,110 @@ function setupEventListeners() {
     };
     purgeNetlifyBadge();
     setInterval(purgeNetlifyBadge, 1000);
+}
+
+// Registro Directo de Siembra desde el Panel de Administración
+function openAdminAddModal() {
+    let modal = document.getElementById('modal-admin-add');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-admin-add';
+        modal.className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+        modal.innerHTML = `
+            <div class="bg-white rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl relative">
+                <button type="button" onclick="document.getElementById('modal-admin-add').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+                <h3 class="text-xl font-extrabold text-slate-900">🌱 Agregar Siembra Directa (Admin)</h3>
+                <form onsubmit="handleAdminAddSubmit(event)" class="space-y-3 text-left">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Nombre del Sembrador *</label>
+                        <input type="text" id="admin-add-planter" required placeholder="Ej. Juan Pérez" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Especie *</label>
+                            <input type="text" id="admin-add-species" required placeholder="Ej. Guayacán Morado" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Provincia *</label>
+                            <select id="admin-add-province" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium">
+                                <option value="Veraguas">Veraguas</option>
+                                <option value="Panamá">Panamá</option>
+                                <option value="Chiriquí">Chiriquí</option>
+                                <option value="Herrera">Herrera</option>
+                                <option value="Los Santos">Los Santos</option>
+                                <option value="Coclé">Coclé</option>
+                                <option value="Colón">Colón</option>
+                                <option value="Bocas del Toro">Bocas del Toro</option>
+                                <option value="Darién">Darién</option>
+                                <option value="Panamá Oeste">Panamá Oeste</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Fecha de Siembra</label>
+                            <input type="date" id="admin-add-date" value="${new Date().toISOString().split('T')[0]}" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Estado Inicial</label>
+                            <select id="admin-add-status" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium">
+                                <option value="pending">⏳ Pendiente</option>
+                                <option value="approved" selected>🌿 Aprobado</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Ubicación / Detalles</label>
+                        <input type="text" id="admin-add-location" placeholder="Ej. Finca La Esperanza, Santiago" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium">
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition-colors text-sm">
+                        ✅ Guardar Registro de Siembra
+                    </button>
+                </form>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    modal.classList.remove('hidden');
+}
+
+function handleAdminAddSubmit(e) {
+    e.preventDefault();
+    const planter = document.getElementById('admin-add-planter').value.trim();
+    const species = document.getElementById('admin-add-species').value.trim();
+    const province = document.getElementById('admin-add-province').value;
+    const date = document.getElementById('admin-add-date').value || new Date().toISOString().split('T')[0];
+    const status = document.getElementById('admin-add-status').value;
+    const locationDesc = document.getElementById('admin-add-location').value.trim();
+
+    const currentYear = new Date().getFullYear();
+    const seq = state.trees.length + 1;
+    const treeCode = `ARB-${currentYear}-${String(seq).padStart(6, '0')}`;
+
+    const newTree = {
+        id: 'tree-' + Date.now(),
+        code: treeCode,
+        planter_name: planter,
+        public_name: planter,
+        species_name: species,
+        planting_date: date,
+        latitude: 8.11,
+        longitude: -80.97,
+        province: province,
+        location_description: locationDesc,
+        privacy_level: 'exact',
+        status: status,
+        synced: true,
+        primary_photo_url: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80',
+        created_at: new Date().toISOString()
+    };
+
+    state.trees.unshift(newTree);
+    saveTreesToStorage();
+    renderAdminDashboard();
+    updateStatsCounter();
+    if (state.map) renderMapMarkers();
+
+    document.getElementById('modal-admin-add').classList.add('hidden');
+    showToast(`🌱 Registrada exitosamente la siembra ${treeCode} para ${planter}`);
 }
