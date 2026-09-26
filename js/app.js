@@ -43,6 +43,20 @@ async function initApp() {
     if (navigator.onLine) {
         syncOfflineTrees();
     }
+
+    // Activar Keep-Alive para prevenir pausas de Supabase Cloud
+    setupSupabaseKeepAlive();
+    setInterval(setupSupabaseKeepAlive, 5 * 60 * 1000);
+}
+
+// Mantenedor de actividad para Supabase Cloud
+function setupSupabaseKeepAlive() {
+    const sb = getSupabaseClient();
+    if (sb && navigator.onLine) {
+        sb.from('public_trees').select('id').limit(1).then(() => {
+            console.log('[Keep-Alive] Supabase Cloud activo y respondiendo.');
+        }).catch(err => console.warn('[Keep-Alive] Error en ping:', err));
+    }
 }
 
 let supabaseClient = null;
