@@ -529,105 +529,122 @@ function handlePhotoUpload(event) {
 let lastSubmittedTree = null;
 
 async function handleFormSubmit(e) {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
 
-    const planterName = document.getElementById('input-planter-name').value.trim();
-    const publicName = document.getElementById('input-public-name').value.trim() || planterName;
-    const email = document.getElementById('input-email') ? document.getElementById('input-email').value.trim() : '';
-    const phone = document.getElementById('input-phone') ? document.getElementById('input-phone').value.trim() : '';
-    const environment = document.getElementById('input-environment') ? document.getElementById('input-environment').value : 'Finca / Terreno Privado';
-    const speciesSelect = document.getElementById('species-select').value;
-    const customSpecies = document.getElementById('input-custom-species').value.trim();
-    const plantingDate = document.getElementById('input-date').value || new Date().toISOString().split('T')[0];
-    const province = document.getElementById('input-province').value;
-    const locationDesc = document.getElementById('input-location-desc').value.trim();
-    const notes = document.getElementById('input-notes').value.trim();
+    try {
+        const planterInput = document.getElementById('input-planter-name');
+        const planterName = planterInput ? planterInput.value.trim() : '';
+        if (!planterName) {
+            alert('⚠️ Por favor ingresa el Nombre Completo del Responsable de la siembra.');
+            if (planterInput) planterInput.focus();
+            return;
+        }
 
-    const lat = parseFloat(document.getElementById('input-lat').value) || state.currentFormCoords.lat;
-    const lng = parseFloat(document.getElementById('input-lng').value) || state.currentFormCoords.lng;
+        const speciesSelectEl = document.getElementById('species-select');
+        const speciesSelect = speciesSelectEl ? speciesSelectEl.value : '';
+        const customSpeciesEl = document.getElementById('input-custom-species');
+        const customSpecies = customSpeciesEl ? customSpeciesEl.value.trim() : '';
+        
+        let speciesName = speciesSelect === 'otro' ? customSpecies : speciesSelect;
+        if (!speciesName) {
+            alert('⚠️ Por favor selecciona o escribe la Especie del árbol.');
+            if (speciesSelectEl) speciesSelectEl.focus();
+            return;
+        }
 
-    const speciesName = speciesSelect === 'otro' ? customSpecies : speciesSelect;
+        const dateEl = document.getElementById('input-date');
+        const plantingDate = (dateEl && dateEl.value) ? dateEl.value : new Date().toISOString().split('T')[0];
 
-    // Generar código único ARB-YYYY-XXXXXX
-    const currentYear = new Date().getFullYear();
-    const seq = state.trees.length + 1;
-    const treeCode = `ARB-${currentYear}-${String(seq).padStart(6, '0')}`;
+        const provinceEl = document.getElementById('input-province');
+        const province = provinceEl ? provinceEl.value : 'Veraguas';
 
-    const newTree = {
-        id: 'tree-' + Date.now(),
-        code: treeCode,
-        planter_name: planterName,
-        public_name: publicName,
-        email: email,
-        phone: phone,
-        environment: environment,
-        species_name: speciesName,
-        planting_date: plantingDate,
-        latitude: lat,
-        longitude: lng,
-        province: province,
-        location_description: locationDesc,
-        privacy_level: 'exact',
-        status: 'pending', // Siempre queda pendiente por defecto
-        synced: false, // Flag de sincronización offline
-        notes: notes,
-        primary_photo_url: state.selectedPhotos[0] || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80',
-        created_at: new Date().toISOString()
-    };
+        const locationDescEl = document.getElementById('input-location-desc');
+        const locationDesc = locationDescEl ? locationDescEl.value.trim() : '';
 
-    lastSubmittedTree = newTree;
-    state.trees.unshift(newTree);
-    saveTreesToStorage();
-    updateStatsCounter();
-    populateFilterDropdowns();
+        const notesEl = document.getElementById('input-notes');
+        const notes = notesEl ? notesEl.value.trim() : '';
 
-    // Enviar a la nube de Supabase si está activo
-    const sb = getSupabaseClient();
-    if (sb && navigator.onLine) {
-        sb.from('trees').insert({
+        const publicNameEl = document.getElementById('input-public-name');
+        const publicName = (publicNameEl && publicNameEl.value.trim()) ? publicNameEl.value.trim() : planterName;
+
+        const emailEl = document.getElementById('input-email');
+        const email = emailEl ? emailEl.value.trim() : '';
+
+        const phoneEl = document.getElementById('input-phone');
+        const phone = phoneEl ? phoneEl.value.trim() : '';
+
+        const envEl = document.getElementById('input-environment');
+        const environment = envEl ? envEl.value : 'Finca / Terreno Privado';
+
+        const latEl = document.getElementById('input-lat');
+        const lngEl = document.getElementById('input-lng');
+
+        const lat = (latEl && parseFloat(latEl.value)) ? parseFloat(latEl.value) : state.currentFormCoords.lat;
+        const lng = (lngEl && parseFloat(lngEl.value)) ? parseFloat(lngEl.value) : state.currentFormCoords.lng;
+
+        // Generar código único ARB-YYYY-XXXXXX
+        const currentYear = new Date().getFullYear();
+        const seq = state.trees.length + 1;
+        const treeCode = `ARB-${currentYear}-${String(seq).padStart(6, '0')}`;
+
+        const newTree = {
+            id: 'tree-' + Date.now(),
+            code: treeCode,
             planter_name: planterName,
             public_name: publicName,
             email: email,
             phone: phone,
-            custom_species_name: speciesName,
+            environment: environment,
+            species_name: speciesName,
             planting_date: plantingDate,
             latitude: lat,
             longitude: lng,
             province: province,
             location_description: locationDesc,
             privacy_level: 'exact',
-            status: 'pending',
-            notes: notes
-        }).select().then(({ data: dbTree, error }) => {
-            if (!error && dbTree && dbTree[0]) {
-                newTree.synced = true;
-                saveTreesToStorage();
-                if (state.selectedPhotos[0]) {
-                    sb.from('tree_photos').insert({
-                        tree_id: dbTree[0].id,
-                        url: state.selectedPhotos[0],
-                        is_primary: true
-                    }).then(() => console.log('Foto guardada en Supabase Cloud.'));
-                }
-            }
-        }).catch(err => console.warn('Guardado offline en dispositivo. Se sincronizará al conectar a internet:', err));
-    } else {
-        showToast('📍 Registro guardado localmente en tu teléfono. Se enviará cuando tengas internet.');
+            status: 'pending', // Siempre queda pendiente por defecto
+            synced: false,
+            notes: notes,
+            primary_photo_url: state.selectedPhotos[0] || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80',
+            created_at: new Date().toISOString()
+        };
+
+        lastSubmittedTree = newTree;
+        state.trees.unshift(newTree);
+        saveTreesToStorage();
+        updateStatsCounter();
+        populateFilterDropdowns();
+
+        // Si la sesión de administración está abierta en este navegador, actualizar tabla
+        if (state.isAdminLoggedIn) {
+            renderAdminDashboard();
+        }
+
+        // Notificación por correo al administrador
+        sendAdminEmailNotification(newTree);
+
+        // Mostrar modal de éxito con el ID del árbol
+        const modalCode = document.getElementById('success-tree-code');
+        if (modalCode) modalCode.textContent = treeCode;
+        
+        const modal = document.getElementById('modal-success');
+        if (modal) modal.classList.remove('hidden');
+
+        const formEl = document.getElementById('form-registro');
+        if (formEl) formEl.reset();
+        
+        state.selectedPhotos = [];
+        const previewContainer = document.getElementById('photo-preview-container');
+        if (previewContainer) previewContainer.innerHTML = '';
+
+        if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+        if (latEl) latEl.value = state.currentFormCoords.lat.toFixed(6);
+        if (lngEl) lngEl.value = state.currentFormCoords.lng.toFixed(6);
+
+    } catch (err) {
+        console.error('Error al procesar el formulario de siembra:', err);
+        alert('❌ Error al enviar el formulario: ' + err.message);
     }
-
-    // Disparar notificación automática por correo electrónico al administrador
-    sendAdminEmailNotification(newTree);
-
-    // Mostrar modal de éxito con el ID del árbol
-    const modalCode = document.getElementById('success-tree-code');
-    if (modalCode) modalCode.textContent = treeCode;
-    
-    const modal = document.getElementById('modal-success');
-    if (modal) modal.classList.remove('hidden');
-
-    document.getElementById('form-registro').reset();
-    state.selectedPhotos = [];
-    document.getElementById('photo-preview-container').innerHTML = '';
 }
 
 // Sincronización automática de registros capturados sin internet

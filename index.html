@@ -205,11 +205,11 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="text-xs text-slate-500">Latitud</label>
-                                <input type="number" step="any" id="input-lat" required readonly class="w-full text-xs p-2 bg-white rounded-lg border border-slate-200 text-slate-700">
+                                <input type="text" id="input-lat" value="8.110000" readonly class="w-full text-xs p-2 bg-white rounded-lg border border-slate-200 text-slate-700">
                             </div>
                             <div>
                                 <label class="text-xs text-slate-500">Longitud</label>
-                                <input type="number" step="any" id="input-lng" required readonly class="w-full text-xs p-2 bg-white rounded-lg border border-slate-200 text-slate-700">
+                                <input type="text" id="input-lng" value="-80.970000" readonly class="w-full text-xs p-2 bg-white rounded-lg border border-slate-200 text-slate-700">
                             </div>
                         </div>
                         <input type="hidden" id="input-accuracy">
@@ -319,7 +319,7 @@
                         <textarea id="input-notes" rows="2" placeholder="Cualquier detalle sobre la siembra o recomendaciones..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm"></textarea>
                     </div>
 
-                    <button type="submit" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl shadow-lg transition-all text-base">
+                    <button type="submit" onclick="handleFormSubmit(event)" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl shadow-lg transition-all text-base">
                         🚀 Enviar Registro de Siembra
                     </button>
                 </form>
