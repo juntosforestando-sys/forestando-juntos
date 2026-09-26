@@ -11,7 +11,7 @@ let state = {
     activeMarkers: [],
     currentFormCoords: { lat: 8.11, lng: -80.97 },
     userMarker: null,
-    isAdminLoggedIn: false,
+    isAdminLoggedIn: sessionStorage.getItem('fj_admin_logged') === 'true',
     selectedPhotos: []
 };
 
@@ -116,17 +116,29 @@ async function loadInitialData() {
 function fallbackLocalData() {
     const savedTrees = localStorage.getItem('fj_trees');
     if (savedTrees) {
-        const parsed = JSON.parse(savedTrees);
-        if (parsed.length < DEMO_TREES.length) {
-            state.trees = [...DEMO_TREES];
-            saveTreesToStorage();
-        } else {
-            state.trees = parsed;
+        try {
+            const parsed = JSON.parse(savedTrees);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                const demoCodes = new Set(DEMO_TREES.map(t => t.code));
+                const userTrees = parsed.filter(t => !demoCodes.has(t.code) || t.status === 'pending');
+                
+                const combinedMap = new Map();
+                userTrees.forEach(t => combinedMap.set(t.code || t.id, t));
+                DEMO_TREES.forEach(t => {
+                    if (!combinedMap.has(t.code)) {
+                        combinedMap.set(t.code, t);
+                    }
+                });
+                state.trees = Array.from(combinedMap.values());
+                saveTreesToStorage();
+                return;
+            }
+        } catch (err) {
+            console.warn('Error parseando árboles de localStorage:', err);
         }
-    } else {
-        state.trees = [...DEMO_TREES];
-        saveTreesToStorage();
     }
+    state.trees = [...DEMO_TREES];
+    saveTreesToStorage();
 }
 
 function fallbackLocalSpecies() {
@@ -867,13 +879,22 @@ function renderAdminDashboard() {
 
     tableBody.innerHTML = '';
 
-    state.trees.forEach(t => {
+    // Ordenar para mostrar los registros PENDIENTES primero en la lista
+    const sortedTrees = [...state.trees].sort((a, b) => {
+        if (a.status === 'pending' && b.status !== 'pending') return -1;
+        if (a.status !== 'pending' && b.status === 'pending') return 1;
+        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    });
+
+    sortedTrees.forEach(t => {
         const tr = document.createElement('tr');
-        tr.className = 'hover:bg-gray-50 transition-colors border-b border-gray-100 text-sm';
+        tr.className = t.status === 'pending'
+            ? 'bg-amber-50/60 hover:bg-amber-100/60 transition-colors border-b border-amber-200 text-sm font-medium'
+            : 'hover:bg-gray-50 transition-colors border-b border-gray-100 text-sm';
         
         const isDead = t.status === 'dead' || t.status === 'baja';
         const badgeClass = t.status === 'approved' ? 'badge-approved' : isDead ? 'badge-dead' : t.status === 'rejected' ? 'badge-rejected' : 'badge-pending';
-        const statusLabel = t.status === 'approved' ? 'Aprobado 🌿' : isDead ? 'Dado de Baja 🥀' : t.status === 'rejected' ? 'Rechazado' : 'Pendiente';
+        const statusLabel = t.status === 'approved' ? 'Aprobado 🌿' : isDead ? 'Dado de Baja 🥀' : t.status === 'rejected' ? 'Rechazado' : 'Pendiente ⏳';
 
         tr.innerHTML = `
             <td class="py-3 px-4 font-mono font-bold text-gray-800">${t.code}</td>
@@ -894,7 +915,7 @@ function renderAdminDashboard() {
                     📍 Reubicar
                 </button>
                 ${t.status !== 'approved' ? `
-                    <button onclick="updateTreeStatus('${t.id}', 'approved')" class="px-2 py-1 bg-emerald-600 text-white text-xs font-semibold rounded hover:bg-emerald-700" title="Aprobar árbol (pin verde en mapa)">
+                    <button onclick="updateTreeStatus('${t.id}', 'approved')" class="px-2 py-1 bg-emerald-600 text-white text-xs font-semibold rounded hover:bg-emerald-700 shadow-sm" title="Aprobar árbol (pin verde en mapa)">
                         🌿 Aprobar
                     </button>
                 ` : ''}
@@ -961,6 +982,7 @@ function handleAdminLogin(e) {
 
     if (email === validEmail && pass === validPass) {
         state.isAdminLoggedIn = true;
+        sessionStorage.setItem('fj_admin_logged', 'true');
         renderAdminDashboard();
         if (state.map) renderMapMarkers();
         showToast('🔓 Sesión de Administrador iniciada. Modo edición de mapa activado.');
@@ -973,6 +995,7 @@ function handleAdminLogin(e) {
 
 function logoutAdmin() {
     state.isAdminLoggedIn = false;
+    sessionStorage.setItem('fj_admin_logged', 'false');
     renderAdminDashboard();
     if (state.map) renderMapMarkers();
     showToast('🔒 Sesión de Administrador cerrada.');

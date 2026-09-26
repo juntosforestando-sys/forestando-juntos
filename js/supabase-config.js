@@ -1,7 +1,7 @@
 const SUPABASE_CONFIG = {
     url: "https://wxchapqelujpuwgbffkg.supabase.co",
     anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4Y2hhcHFlbHVqcHV3Z2JmZmtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjY2MjgwMjcsImV4cCI6MjA0MjIwNDAyN30.Zz6C7gA9WqQv5NfD4J0K8_m5L2X1Y3Z5",
-    useFallback: false,
+    useFallback: true,
     adminPhone: "50760000000",
     adminEmail: "juntosforestando@gmail.com",
     adminPassword: "Forestando2026!" // Puedes cambiar esta contraseña por la que prefieras
