@@ -79,12 +79,18 @@ async function loadInitialData() {
     const sb = getSupabaseClient();
     if (sb) {
         try {
-            const { data: treesData, error: treesErr } = await sb.from('public_trees').select('*');
+            let { data: treesData, error: treesErr } = await sb.from('trees').select('*');
+            if (treesErr || !treesData || treesData.length === 0) {
+                const res = await sb.from('public_trees').select('*');
+                treesData = res.data;
+                treesErr = res.error;
+            }
+
             if (!treesErr && treesData && treesData.length > 0) {
                 state.trees = treesData.map(t => ({
                     ...t,
                     status: t.status || 'approved',
-                    species_name: t.display_species || t.species_name || 'Guayacán Morado'
+                    species_name: t.custom_species_name || t.display_species || t.species_name || 'Guayacán Morado'
                 }));
                 saveTreesToStorage();
             } else {
