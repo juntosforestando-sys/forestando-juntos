@@ -148,6 +148,12 @@ CREATE POLICY "Permitir registro publico de siembras"
 ON public.trees FOR INSERT 
 WITH CHECK (status = 'pending');
 
+-- Registros: Cualquiera puede LEER siembras (para panel admin y mapa)
+CREATE POLICY "Permitir lectura publica de siembras" 
+ON public.trees FOR SELECT 
+TO public 
+USING (true);
+
 -- Registros: Permitir actualización de estado de siembras
 CREATE POLICY "Permitir actualizar estado de siembras" 
 ON public.trees FOR UPDATE 
