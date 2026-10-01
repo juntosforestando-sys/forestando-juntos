@@ -96,13 +96,14 @@ async function loadInitialData() {
                         if (Array.isArray(parsedLocal)) {
                             parsedLocal.forEach(t => {
                                 if (t.code && t.status) localStatusMap.set(t.code, t.status);
+                                if (t.id && t.status) localStatusMap.set(t.id, t.status);
                             });
                         }
                     } catch (e) {}
                 }
 
                 state.trees = treesData.map(t => {
-                    const localStatus = localStatusMap.get(t.code);
+                    const localStatus = (t.id ? localStatusMap.get(t.id) : null) || (t.code ? localStatusMap.get(t.code) : null);
                     return {
                         ...t,
                         status: localStatus || t.status || 'approved',
@@ -780,7 +781,10 @@ function sendWhatsAppConfirmation() {
         ? `https://wa.me/${cleanPhone}?text=${message}`
         : `https://api.whatsapp.com/send?text=${message}`;
 
-    window.open(waUrl, '_blank');
+    // Redireccionar directamente para asegurar apertura automática en celulares sin bloqueo de emergentes
+    setTimeout(() => {
+        window.location.href = waUrl;
+    }, 1200);
 }
 
 function sendAdminNotificationWhatsApp() {
@@ -1076,8 +1080,15 @@ function updateTreeStatus(treeId, newStatus) {
         // Actualizar estado en la nube de Supabase Cloud
         const sb = getSupabaseClient();
         if (sb) {
-            sb.from('trees').update({ status: newStatus }).eq('code', tree.code)
-                .then(() => console.log(`[Supabase] Estado de ${tree.code} actualizado a ${newStatus}`))
+            let query = sb.from('trees').update({ status: newStatus });
+            if (tree.id && tree.code) {
+                query = query.or(`id.eq.${tree.id},code.eq.${tree.code}`);
+            } else if (tree.id) {
+                query = query.eq('id', tree.id);
+            } else {
+                query = query.eq('code', tree.code);
+            }
+            query.then(() => console.log(`[Supabase] Estado de ${tree.code || tree.id} actualizado a ${newStatus}`))
                 .catch(err => console.warn('Error al actualizar estado en Supabase:', err));
         }
 

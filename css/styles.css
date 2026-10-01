@@ -156,3 +156,12 @@ div[style*="z-index: 2147483647"] {
   top: -9999px !important;
   left: -9999px !important;
 }
+
+/* Anular bordes y fondos por defecto de Leaflet en pines de árboles */
+.custom-tree-pin-green,
+.custom-tree-pin-red {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
