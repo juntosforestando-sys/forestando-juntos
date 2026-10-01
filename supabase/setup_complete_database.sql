@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS public.trees (
     district TEXT,
     location_description TEXT,
     privacy_level TEXT DEFAULT 'exact' CHECK (privacy_level IN ('exact', 'approximate', 'hidden')),
-    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'correction')),
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'correction', 'dead', 'baja')),
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
     approved_at TIMESTAMPTZ,
