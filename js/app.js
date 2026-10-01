@@ -638,6 +638,42 @@ async function handleFormSubmit(e) {
         updateStatsCounter();
         populateFilterDropdowns();
 
+        // Enviar a la nube de Supabase Cloud para que esté disponible para el Administrador
+        const sb = getSupabaseClient();
+        if (sb && navigator.onLine) {
+            try {
+                const { data: dbTree, error: dbErr } = await sb.from('trees').insert({
+                    planter_name: planterName,
+                    public_name: publicName,
+                    email: email,
+                    phone: phone,
+                    custom_species_name: speciesName,
+                    planting_date: plantingDate,
+                    latitude: lat,
+                    longitude: lng,
+                    province: province,
+                    location_description: locationDesc,
+                    privacy_level: 'exact',
+                    status: 'pending',
+                    notes: notes
+                }).select();
+
+                if (!dbErr && dbTree && dbTree[0]) {
+                    newTree.synced = true;
+                    saveTreesToStorage();
+                    if (state.selectedPhotos[0]) {
+                        await sb.from('tree_photos').insert({
+                            tree_id: dbTree[0].id,
+                            url: state.selectedPhotos[0],
+                            is_primary: true
+                        });
+                    }
+                }
+            } catch (err) {
+                console.warn('Error al guardar siembra en Supabase Cloud:', err);
+            }
+        }
+
         // Si la sesión de administración está abierta en este navegador, actualizar tabla
         if (state.isAdminLoggedIn) {
             renderAdminDashboard();
@@ -645,6 +681,9 @@ async function handleFormSubmit(e) {
 
         // Notificación por correo al administrador
         sendAdminEmailNotification(newTree);
+
+        // Disparar automáticamente la confirmación por WhatsApp al participante
+        sendWhatsAppConfirmation();
 
         // Mostrar modal de éxito con el ID del árbol
         const modalCode = document.getElementById('success-tree-code');
