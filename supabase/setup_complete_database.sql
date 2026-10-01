@@ -148,6 +148,12 @@ CREATE POLICY "Permitir registro publico de siembras"
 ON public.trees FOR INSERT 
 WITH CHECK (status = 'pending');
 
+-- Registros: Permitir actualización de estado de siembras
+CREATE POLICY "Permitir actualizar estado de siembras" 
+ON public.trees FOR UPDATE 
+TO public 
+USING (true) WITH CHECK (true);
+
 -- Fotos: Cualquiera puede subir fotos asociadas
 CREATE POLICY "Permitir subir fotos de siembras" 
 ON public.tree_photos FOR INSERT 

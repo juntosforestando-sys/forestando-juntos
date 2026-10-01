@@ -87,11 +87,28 @@ async function loadInitialData() {
             }
 
             if (!treesErr && treesData && treesData.length > 0) {
-                state.trees = treesData.map(t => ({
-                    ...t,
-                    status: t.status || 'approved',
-                    species_name: t.custom_species_name || t.display_species || t.species_name || 'Guayacán Morado'
-                }));
+                // Preservar modificaciones de estado realizadas localmente por el administrador
+                const savedLocal = localStorage.getItem('fj_trees');
+                let localStatusMap = new Map();
+                if (savedLocal) {
+                    try {
+                        const parsedLocal = JSON.parse(savedLocal);
+                        if (Array.isArray(parsedLocal)) {
+                            parsedLocal.forEach(t => {
+                                if (t.code && t.status) localStatusMap.set(t.code, t.status);
+                            });
+                        }
+                    } catch (e) {}
+                }
+
+                state.trees = treesData.map(t => {
+                    const localStatus = localStatusMap.get(t.code);
+                    return {
+                        ...t,
+                        status: localStatus || t.status || 'approved',
+                        species_name: t.custom_species_name || t.display_species || t.species_name || 'Guayacán Morado'
+                    };
+                });
                 saveTreesToStorage();
             } else {
                 fallbackLocalData();
