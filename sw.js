@@ -1,5 +1,5 @@
 // Service Worker para soporte 100% Offline en campo (Forestando Juntos)
-const CACHE_NAME = 'forestando-juntos-v2.1';
+const CACHE_NAME = 'forestando-juntos-v3.0';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -17,7 +17,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            console.log('[SW v2.1] Cacheando recursos principales para modo offline...');
+            console.log('[SW v3.0] Cacheando recursos principales para modo offline...');
             return cache.addAll(ASSETS_TO_CACHE).catch(err => console.warn('[SW] Error cacheando algunos recursos:', err));
         })
     );

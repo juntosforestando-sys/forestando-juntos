@@ -87,26 +87,11 @@ async function loadInitialData() {
             }
 
             if (!treesErr && treesData && treesData.length > 0) {
-                // Preservar modificaciones de estado realizadas localmente por el administrador
-                const savedLocal = localStorage.getItem('fj_trees');
-                let localStatusMap = new Map();
-                if (savedLocal) {
-                    try {
-                        const parsedLocal = JSON.parse(savedLocal);
-                        if (Array.isArray(parsedLocal)) {
-                            parsedLocal.forEach(t => {
-                                if (t.code && t.status) localStatusMap.set(t.code, t.status);
-                                if (t.id && t.status) localStatusMap.set(t.id, t.status);
-                            });
-                        }
-                    } catch (e) {}
-                }
-
+                // Supabase Cloud es la Fuente Única de Verdad (Single Source of Truth)
                 state.trees = treesData.map(t => {
-                    const localStatus = (t.id ? localStatusMap.get(t.id) : null) || (t.code ? localStatusMap.get(t.code) : null);
                     return {
                         ...t,
-                        status: localStatus || t.status || 'approved',
+                        status: t.status || 'approved',
                         species_name: t.custom_species_name || t.display_species || t.species_name || 'Guayacán Morado'
                     };
                 });
@@ -1071,15 +1056,14 @@ function logoutAdmin() {
     showToast('🔒 Sesión de Administrador cerrada.');
 }
 
-function updateTreeStatus(treeId, newStatus) {
+async function updateTreeStatus(treeId, newStatus) {
     const tree = state.trees.find(t => t.id === treeId || t.code === treeId);
-    if (tree) {
-        tree.status = newStatus;
-        saveTreesToStorage();
+    if (!tree) return;
 
-        // Actualizar estado en la nube de Supabase Cloud
-        const sb = getSupabaseClient();
-        if (sb) {
+    // Actualizar estado en la nube de Supabase Cloud primero (Fuente Única de Verdad)
+    const sb = getSupabaseClient();
+    if (sb && navigator.onLine) {
+        try {
             let query = sb.from('trees').update({ status: newStatus });
             if (tree.id && tree.code) {
                 query = query.or(`id.eq.${tree.id},code.eq.${tree.code}`);
@@ -1088,21 +1072,31 @@ function updateTreeStatus(treeId, newStatus) {
             } else {
                 query = query.eq('code', tree.code);
             }
-            query.then(() => console.log(`[Supabase] Estado de ${tree.code || tree.id} actualizado a ${newStatus}`))
-                .catch(err => console.warn('Error al actualizar estado en Supabase:', err));
+            const { data, error } = await query.select();
+            if (error) {
+                console.error('[Supabase] Error al actualizar estado:', error);
+                showToast(`⚠️ No se pudo actualizar en la nube: ${error.message || 'Error de base de datos'}`);
+                return;
+            }
+        } catch (err) {
+            console.error('[Supabase] Excepción en llamada a Supabase:', err);
+            showToast('⚠️ Error de conexión con Supabase Cloud.');
+            return;
         }
-
-        renderAdminDashboard();
-        updateStatsCounter();
-        if (state.map) renderMapMarkers();
-
-        const statusMsg = (newStatus === 'dead' || newStatus === 'baja')
-            ? '🥀 Árbol dado de baja (marcador rojo activo en el mapa).' 
-            : newStatus === 'approved' 
-            ? '🌿 Árbol activo (marcador verde en el mapa).' 
-            : '❌ Árbol rechazado.';
-        showToast(`Estado de ${tree.code} actualizado: ${statusMsg}`);
     }
+
+    tree.status = newStatus;
+    saveTreesToStorage();
+    renderAdminDashboard();
+    updateStatsCounter();
+    if (state.map) renderMapMarkers();
+
+    const statusMsg = (newStatus === 'dead' || newStatus === 'baja')
+        ? '🥀 Árbol dado de baja (marcador rojo activo en el mapa).' 
+        : newStatus === 'approved' 
+        ? '🌿 Árbol activo (marcador verde en el mapa).' 
+        : '❌ Árbol rechazado.';
+    showToast(`Estado de ${tree.code || tree.id} actualizado: ${statusMsg}`);
 }
 
 // Exportar Registros a CSV
