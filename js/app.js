@@ -965,7 +965,7 @@ function renderAdminDashboard() {
                     ${statusLabel}
                 </span>
             </td>
-            <td class="py-3 px-4 text-right space-x-1">
+            <td class="py-3 px-4 text-right space-x-1 whitespace-nowrap">
                 <button onclick="focusTreeOnMap('${t.code}')" class="px-2 py-1 bg-amber-50 border border-amber-300 text-amber-800 hover:bg-amber-100 text-xs font-semibold rounded transition-colors" title="Ajustar posición en el mapa">
                     📍 Reubicar
                 </button>
@@ -974,7 +974,7 @@ function renderAdminDashboard() {
                         🌿 Aprobar
                     </button>
                 ` : ''}
-                ${!isDead ? `
+                ${(!isDead && t.status !== 'rejected') ? `
                     <button onclick="updateTreeStatus('${t.id}', 'dead')" class="px-2 py-1 bg-rose-600 text-white text-xs font-semibold rounded hover:bg-rose-700" title="Dar de baja árbol no sobreviviente (pin rojo en mapa)">
                         🥀 Baja
                     </button>
