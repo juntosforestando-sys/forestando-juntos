@@ -980,10 +980,14 @@ function renderAdminDashboard() {
                     </button>
                 ` : ''}
                 ${t.status !== 'rejected' ? `
-                    <button onclick="updateTreeStatus('${t.id}', 'rejected')" class="px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded hover:bg-red-200">
+                    <button onclick="updateTreeStatus('${t.id}', 'rejected')" class="px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded hover:bg-red-200" title="Rechazar siembra">
                         Rechazar
                     </button>
-                ` : ''}
+                ` : `
+                    <button onclick="deleteTree('${t.id}')" class="px-2 py-1 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700 shadow-sm" title="Eliminar registro permanentemente">
+                        🗑️ Eliminar
+                    </button>
+                `}
             </td>
         `;
         tableBody.appendChild(tr);
@@ -1097,6 +1101,52 @@ async function updateTreeStatus(treeId, newStatus) {
         ? '🌿 Árbol activo (marcador verde en el mapa).' 
         : '❌ Árbol rechazado.';
     showToast(`Estado de ${tree.code || tree.id} actualizado: ${statusMsg}`);
+}
+
+async function deleteTree(treeId) {
+    const tree = state.trees.find(t => t.id === treeId || t.code === treeId);
+    if (!tree) return;
+
+    if (!confirm(`⚠️ ¿Estás seguro de que deseas eliminar permanentemente la siembra ${tree.code || tree.planter_name}? Esta acción no se puede deshacer.`)) {
+        return;
+    }
+
+    const sb = getSupabaseClient();
+    if (sb && navigator.onLine) {
+        try {
+            // Eliminar fotos asociadas si existen
+            if (tree.id) {
+                await sb.from('tree_photos').delete().eq('tree_id', tree.id);
+            }
+            let query = sb.from('trees').delete();
+            if (tree.id && tree.code) {
+                query = query.or(`id.eq.${tree.id},code.eq.${tree.code}`);
+            } else if (tree.id) {
+                query = query.eq('id', tree.id);
+            } else {
+                query = query.eq('code', tree.code);
+            }
+            const { error } = await query;
+            if (error) {
+                console.error('[Supabase] Error al eliminar siembra:', error);
+                showToast(`⚠️ No se pudo eliminar de la nube: ${error.message || 'Error de base de datos'}`);
+                return;
+            }
+        } catch (err) {
+            console.error('[Supabase] Excepción al eliminar siembra:', err);
+            showToast('⚠️ Error de conexión con Supabase Cloud.');
+            return;
+        }
+    }
+
+    // Eliminar del estado local
+    state.trees = state.trees.filter(t => t.id !== tree.id && t.code !== tree.code);
+    saveTreesToStorage();
+    renderAdminDashboard();
+    updateStatsCounter();
+    if (state.map) renderMapMarkers();
+
+    showToast(`🗑️ Registro ${tree.code || ''} eliminado permanentemente.`);
 }
 
 // Exportar Registros a CSV
