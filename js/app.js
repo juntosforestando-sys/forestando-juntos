@@ -947,9 +947,14 @@ function renderAdminDashboard() {
             ? 'bg-amber-50/60 hover:bg-amber-100/60 transition-colors border-b border-amber-200 text-sm font-medium'
             : 'hover:bg-gray-50 transition-colors border-b border-gray-100 text-sm';
         
-        const isDead = t.status === 'dead' || t.status === 'baja';
-        const badgeClass = t.status === 'approved' ? 'badge-approved' : isDead ? 'badge-dead' : t.status === 'rejected' ? 'badge-rejected' : 'badge-pending';
-        const statusLabel = t.status === 'approved' ? 'Aprobado 🌿' : isDead ? 'Dado de Baja 🥀' : t.status === 'rejected' ? 'Rechazado' : 'Pendiente ⏳';
+        const s = (t.status || '').toLowerCase().trim();
+        const isPending = s === 'pending' || s === 'pendiente';
+        const isApproved = s === 'approved' || s === 'aprobado';
+        const isDead = s === 'dead' || s === 'baja';
+        const isRejected = s === 'rejected' || s === 'rechazado';
+
+        const badgeClass = isApproved ? 'badge-approved' : isDead ? 'badge-dead' : isRejected ? 'badge-rejected' : 'badge-pending';
+        const statusLabel = isApproved ? 'Aprobado 🌿' : isDead ? 'Dado de Baja 🥀' : isRejected ? 'Rechazado' : 'Pendiente ⏳';
 
         tr.innerHTML = `
             <td class="py-3 px-4 font-mono font-bold text-gray-800">${t.code}</td>
@@ -969,17 +974,17 @@ function renderAdminDashboard() {
                 <button onclick="focusTreeOnMap('${t.code}')" class="px-2 py-1 bg-amber-50 border border-amber-300 text-amber-800 hover:bg-amber-100 text-xs font-semibold rounded transition-colors" title="Ajustar posición en el mapa">
                     📍 Reubicar
                 </button>
-                ${t.status !== 'approved' ? `
+                ${!isApproved ? `
                     <button onclick="updateTreeStatus('${t.id}', 'approved')" class="px-2 py-1 bg-emerald-600 text-white text-xs font-semibold rounded hover:bg-emerald-700 shadow-sm" title="Aprobar árbol (pin verde en mapa)">
                         🌿 Aprobar
                     </button>
                 ` : ''}
-                ${(!isDead && t.status !== 'rejected') ? `
+                ${(!isDead && !isRejected) ? `
                     <button onclick="updateTreeStatus('${t.id}', 'dead')" class="px-2 py-1 bg-rose-600 text-white text-xs font-semibold rounded hover:bg-rose-700" title="Dar de baja árbol no sobreviviente (pin rojo en mapa)">
                         🥀 Baja
                     </button>
                 ` : ''}
-                ${t.status !== 'rejected' ? `
+                ${!isRejected ? `
                     <button onclick="updateTreeStatus('${t.id}', 'rejected')" class="px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded hover:bg-red-200" title="Rechazar siembra">
                         Rechazar
                     </button>
