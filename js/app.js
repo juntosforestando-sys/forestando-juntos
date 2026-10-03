@@ -1,4 +1,5 @@
 // Lógica principal de la aplicación Forestando Juntos
+const APP_VERSION = 'v3.4';
 
 let state = {
     trees: [],
