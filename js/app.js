@@ -80,7 +80,7 @@ async function loadInitialData() {
     const sb = getSupabaseClient();
     if (sb) {
         try {
-            let { data: treesData, error: treesErr } = await sb.from('trees').select('*');
+            let { data: treesData, error: treesErr } = await sb.from('trees').select('*, tree_photos(*)');
             if (treesErr || !treesData || treesData.length === 0) {
                 const res = await sb.from('public_trees').select('*');
                 treesData = res.data;
@@ -90,10 +90,18 @@ async function loadInitialData() {
             if (!treesErr && treesData && treesData.length > 0) {
                 // Supabase Cloud es la Fuente Única de Verdad (Single Source of Truth)
                 state.trees = treesData.map(t => {
+                    let photoUrl = t.primary_photo_url;
+                    if (!photoUrl && t.tree_photos && Array.isArray(t.tree_photos) && t.tree_photos.length > 0) {
+                        const primary = t.tree_photos.find(p => p.is_primary) || t.tree_photos[0];
+                        if (primary && primary.url) {
+                            photoUrl = primary.url;
+                        }
+                    }
                     return {
                         ...t,
                         status: t.status || 'approved',
-                        species_name: t.custom_species_name || t.display_species || t.species_name || 'Guayacán Morado'
+                        species_name: t.custom_species_name || t.display_species || t.species_name || 'Guayacán Morado',
+                        primary_photo_url: photoUrl || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80'
                     };
                 });
                 saveTreesToStorage();
@@ -436,7 +444,9 @@ function renderMapMarkers() {
 
         const popupHtml = `
             <div class="p-3 text-left">
-                <img src="${t.primary_photo_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80'}" class="w-full h-32 object-cover rounded-lg mb-2">
+                <img src="${t.primary_photo_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80'}" 
+                     onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80';"
+                     class="w-full h-32 object-cover rounded-lg mb-2" alt="${t.species_name}">
                 ${badgeHtml}
                 ${state.isAdminLoggedIn ? '<span class="inline-block text-xs font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded mb-1 ml-1">🔓 Arrastra para mover</span>' : ''}
                 <h4 class="font-bold text-gray-900 text-sm leading-tight">${t.species_name}</h4>
@@ -864,7 +874,9 @@ function renderTreeProfile(code) {
     container.innerHTML = `
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden max-w-4xl mx-auto border border-emerald-100">
             <div class="relative h-72 sm:h-96 w-full bg-gray-900">
-                <img src="${tree.primary_photo_url}" class="w-full h-full object-cover opacity-90" alt="${tree.species_name}">
+                <img src="${tree.primary_photo_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80'}" 
+                     onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80';"
+                     class="w-full h-full object-cover opacity-90" alt="${tree.species_name}">
                 <div class="absolute top-4 left-4">
                     <span class="px-4 py-1.5 bg-emerald-600 text-white font-bold text-sm rounded-full shadow-lg">
                         ${tree.code}
@@ -958,6 +970,12 @@ function renderAdminDashboard() {
         const statusLabel = isApproved ? 'Aprobado 🌿' : isDead ? 'Dado de Baja 🥀' : isRejected ? 'Rechazado' : 'Pendiente ⏳';
 
         tr.innerHTML = `
+            <td class="py-3 px-4">
+                <img src="${t.primary_photo_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80'}" 
+                     onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80';"
+                     class="w-10 h-10 object-cover rounded-lg border border-slate-200 shadow-sm cursor-pointer hover:scale-105 transition-transform"
+                     onclick="showView('arbol', {code: '${t.code}'})" title="Ver Ficha y Foto Completa">
+            </td>
             <td class="py-3 px-4 font-mono font-bold text-gray-800">${t.code}</td>
             <td class="py-3 px-4 font-semibold text-gray-900">${t.species_name}</td>
             <td class="py-3 px-4">
