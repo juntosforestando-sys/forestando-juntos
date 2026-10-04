@@ -156,6 +156,61 @@
                 </div>
             </div>
 
+            <!-- CALCULADORA DE IMPACTO ECOLÓGICO EN TIEMPO REAL (Idea 2) -->
+            <div class="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white border border-emerald-500/30 shadow-xl space-y-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-emerald-500/20 pb-4">
+                    <div>
+                        <h3 class="text-xl sm:text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-400 flex items-center gap-2">
+                            🍃 Impacto Ecológico Estimado en Tiempo Real
+                        </h3>
+                        <p class="text-xs sm:text-sm text-emerald-200/80">
+                            Beneficios ambientales acumulados por los árboles sembrados en Panamá.
+                        </p>
+                    </div>
+                    <span class="px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[11px] font-mono font-bold rounded-full uppercase tracking-wider shadow-sm">
+                        📊 Fórmulas ANAM / STRI
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- CO2 Absorbido -->
+                    <div class="bg-slate-950/60 p-4 rounded-2xl border border-emerald-500/30 space-y-1">
+                        <div class="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                            <span>🍃 CO₂ Absorbido</span>
+                        </div>
+                        <p class="text-2xl sm:text-3xl font-black text-amber-300 font-mono" id="stat-impact-co2">0 kg/año</p>
+                        <p class="text-[11px] text-slate-400">Captura de carbono continua</p>
+                    </div>
+
+                    <!-- Oxígeno Generado -->
+                    <div class="bg-slate-950/60 p-4 rounded-2xl border border-emerald-500/30 space-y-1">
+                        <div class="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                            <span>🫁 Aire Puro (Oxígeno)</span>
+                        </div>
+                        <p class="text-2xl sm:text-3xl font-black text-emerald-300 font-mono" id="stat-impact-o2">0 pers/año</p>
+                        <p class="text-[11px] text-slate-400">Oxígeno para personas/año</p>
+                    </div>
+
+                    <!-- Agua Retenida -->
+                    <div class="bg-slate-950/60 p-4 rounded-2xl border border-emerald-500/30 space-y-1">
+                        <div class="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                            <span>💧 Agua Filtrada</span>
+                        </div>
+                        <p class="text-2xl sm:text-3xl font-black text-cyan-300 font-mono" id="stat-impact-water">0 L/año</p>
+                        <p class="text-[11px] text-slate-400">Lluvia infiltrada a acuíferos</p>
+                    </div>
+
+                    <!-- Cobertura de Dosel -->
+                    <div class="bg-slate-950/60 p-4 rounded-2xl border border-emerald-500/30 space-y-1">
+                        <div class="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                            <span>🌳 Sombra & Cobertura</span>
+                        </div>
+                        <p class="text-2xl sm:text-3xl font-black text-emerald-200 font-mono" id="stat-impact-canopy">0 m²</p>
+                        <p class="text-[11px] text-slate-400">Dosel forestal generado</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Pasos del Flujo -->
             <div class="space-y-6">
                 <h2 class="text-2xl font-bold text-slate-900 text-center">¿Cómo funciona?</h2>
@@ -609,7 +664,7 @@
             <p class="pt-2 text-slate-400 text-[11px] border-t border-slate-100 w-fit mx-auto px-6 flex items-center justify-center gap-2 flex-wrap">
                 <span>Desarrollado por <span class="font-bold text-emerald-800">Nando Compusystem</span> © 2026 • Todos los derechos reservados</span>
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm" title="Versión actual de la plataforma en ejecución">
-                    v3.6
+                    v3.7
                 </span>
                 <span class="inline-block text-slate-300">• <a href="#admin" onclick="showView('admin')" class="hover:text-slate-500 transition-colors opacity-50" title="Acceso Administrativo">🔒</a></span>
             </p>
@@ -618,8 +673,8 @@
 
     <!-- JS de la Aplicación -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase-config.js?v=3.6"></script>
-    <script src="js/app.js?v=3.6"></script>
+    <script src="js/supabase-config.js?v=3.7"></script>
+    <script src="js/app.js?v=3.7"></script>
 
 </body>
 </html>

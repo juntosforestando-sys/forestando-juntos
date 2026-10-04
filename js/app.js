@@ -1,5 +1,5 @@
 // Lógica principal de la aplicación Forestando Juntos
-const APP_VERSION = 'v3.6';
+const APP_VERSION = 'v3.7';
 
 let state = {
     trees: [],
@@ -267,7 +267,7 @@ function populateFilterDropdowns() {
     });
 }
 
-// Actualizar Contador Estadístico de la Landing Page
+// Actualizar Contador Estadístico y Calculadora de Impacto Ecológico (Idea 2)
 function updateStatsCounter() {
     // Registros históricos válidos (aprobados y dados de baja) para no perder la estadística de siembras realizadas
     const historicalTrees = state.trees.filter(t => t.status === 'approved' || t.status === 'dead' || t.status === 'baja' || !t.status);
@@ -282,6 +282,26 @@ function updateStatsCounter() {
     if (elTotal) elTotal.textContent = totalCount;
     if (elSpecies) elSpecies.textContent = speciesCount;
     if (elProvinces) elProvinces.textContent = provincesCount;
+
+    // Fórmulas Ecológicas Estimadas (ANAM / STRI para trópicos panameños)
+    // 1 árbol nativo absorbe ~21 kg CO2/año
+    // 2 árboles producen oxígeno para ~1 persona/año (0.5 personas por árbol)
+    // 1 árbol infiltra ~250 Litros de agua de lluvia/año a mantos freáticos
+    // 1 árbol provee ~10 m² de sombra/cobertura forestal
+    const co2KgYear = Math.round(totalCount * 21);
+    const o2PeopleYear = Math.round(totalCount * 0.5);
+    const waterLitersYear = Math.round(totalCount * 250);
+    const canopyM2 = Math.round(totalCount * 10);
+
+    const elCo2 = document.getElementById('stat-impact-co2');
+    const elO2 = document.getElementById('stat-impact-o2');
+    const elWater = document.getElementById('stat-impact-water');
+    const elCanopy = document.getElementById('stat-impact-canopy');
+
+    if (elCo2) elCo2.textContent = `${co2KgYear.toLocaleString('es-PA')} kg/año`;
+    if (elO2) elO2.textContent = `${o2PeopleYear.toLocaleString('es-PA')} pers/año`;
+    if (elWater) elWater.textContent = `${waterLitersYear.toLocaleString('es-PA')} L/año`;
+    if (elCanopy) elCanopy.textContent = `${canopyM2.toLocaleString('es-PA')} m²`;
 }
 
 // Geolocalización GPS para el Formulario
@@ -922,6 +942,34 @@ function renderTreeProfile(code) {
                     <p class="text-gray-600 bg-gray-50 p-4 rounded-xl italic">${tree.notes}</p>
                 </div>
                 ` : ''}
+
+                <!-- Impacto Ecológico Estimado de este Árbol (Idea 2) -->
+                <div class="bg-gradient-to-br from-slate-900 to-emerald-950 p-5 rounded-2xl border border-emerald-500/30 text-white space-y-3 shadow-md">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xs sm:text-sm font-extrabold text-emerald-300 flex items-center gap-2 uppercase tracking-wide">
+                            🍃 Impacto Ecológico Estimado de este Árbol
+                        </h3>
+                        <span class="text-[10px] text-emerald-400/80 font-mono">Fórmulas ANAM / STRI</span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs">
+                        <div class="bg-slate-950/70 p-3 rounded-xl border border-emerald-500/20 space-y-0.5">
+                            <span class="text-amber-300 font-mono font-black text-sm sm:text-base block">~21 kg/año</span>
+                            <span class="text-[10px] text-slate-300 block">CO₂ Absorbido</span>
+                        </div>
+                        <div class="bg-slate-950/70 p-3 rounded-xl border border-emerald-500/20 space-y-0.5">
+                            <span class="text-emerald-300 font-mono font-black text-sm sm:text-base block">~0.5 pers</span>
+                            <span class="text-[10px] text-slate-300 block">Oxígeno Anual</span>
+                        </div>
+                        <div class="bg-slate-950/70 p-3 rounded-xl border border-emerald-500/20 space-y-0.5">
+                            <span class="text-cyan-300 font-mono font-black text-sm sm:text-base block">~250 L/año</span>
+                            <span class="text-[10px] text-slate-300 block">Agua Filtrada</span>
+                        </div>
+                        <div class="bg-slate-950/70 p-3 rounded-xl border border-emerald-500/20 space-y-0.5">
+                            <span class="text-emerald-200 font-mono font-black text-sm sm:text-base block">~10 m²</span>
+                            <span class="text-[10px] text-slate-300 block">Sombra / Dosel</span>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100">
                     ${canDownloadCertificate(tree.code) ? `
