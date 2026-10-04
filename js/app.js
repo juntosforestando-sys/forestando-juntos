@@ -947,26 +947,30 @@ function renderTreeProfile(code) {
                 <div class="bg-gradient-to-br from-slate-900 to-emerald-950 p-5 rounded-2xl border border-emerald-500/30 text-white space-y-3 shadow-md">
                     <div class="flex justify-between items-center">
                         <h3 class="text-xs sm:text-sm font-extrabold text-emerald-300 flex items-center gap-2 uppercase tracking-wide">
-                            🍃 Impacto Ecológico Estimado de este Árbol
+                            🍃 Beneficio Ecológico Estimado de este Árbol
                         </h3>
                         <span class="text-[10px] text-emerald-400/80 font-mono">Fórmulas ANAM / STRI</span>
                     </div>
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs">
-                        <div class="bg-slate-950/70 p-3 rounded-xl border border-emerald-500/20 space-y-0.5">
+                        <div class="bg-slate-950/70 p-3 rounded-xl border border-emerald-500/20 space-y-1">
                             <span class="text-amber-300 font-mono font-black text-sm sm:text-base block">~21 kg/año</span>
-                            <span class="text-[10px] text-slate-300 block">CO₂ Absorbido</span>
+                            <span class="text-[10px] font-bold text-slate-200 block">CO₂ Absorbido</span>
+                            <span class="text-[9px] text-emerald-200/90 leading-tight block pt-1 border-t border-emerald-500/20 italic">Limpia humo y contaminación del aire.</span>
                         </div>
-                        <div class="bg-slate-950/70 p-3 rounded-xl border border-emerald-500/20 space-y-0.5">
+                        <div class="bg-slate-950/70 p-3 rounded-xl border border-emerald-500/20 space-y-1">
                             <span class="text-emerald-300 font-mono font-black text-sm sm:text-base block">~0.5 pers</span>
-                            <span class="text-[10px] text-slate-300 block">Oxígeno Anual</span>
+                            <span class="text-[10px] font-bold text-slate-200 block">Oxígeno Anual</span>
+                            <span class="text-[9px] text-emerald-200/90 leading-tight block pt-1 border-t border-emerald-500/20 italic">Fabrica aire limpio para respirar.</span>
                         </div>
-                        <div class="bg-slate-950/70 p-3 rounded-xl border border-emerald-500/20 space-y-0.5">
+                        <div class="bg-slate-950/70 p-3 rounded-xl border border-emerald-500/20 space-y-1">
                             <span class="text-cyan-300 font-mono font-black text-sm sm:text-base block">~250 L/año</span>
-                            <span class="text-[10px] text-slate-300 block">Agua Filtrada</span>
+                            <span class="text-[10px] font-bold text-slate-200 block">Agua Filtrada</span>
+                            <span class="text-[9px] text-emerald-200/90 leading-tight block pt-1 border-t border-emerald-500/20 italic">Guarda lluvia en la tierra y ríos.</span>
                         </div>
-                        <div class="bg-slate-950/70 p-3 rounded-xl border border-emerald-500/20 space-y-0.5">
+                        <div class="bg-slate-950/70 p-3 rounded-xl border border-emerald-500/20 space-y-1">
                             <span class="text-emerald-200 font-mono font-black text-sm sm:text-base block">~10 m²</span>
-                            <span class="text-[10px] text-slate-300 block">Sombra / Dosel</span>
+                            <span class="text-[10px] font-bold text-slate-200 block">Sombra / Dosel</span>
+                            <span class="text-[9px] text-emerald-200/90 leading-tight block pt-1 border-t border-emerald-500/20 italic">Da sombra fresca y protege aves.</span>
                         </div>
                     </div>
                 </div>
