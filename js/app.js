@@ -1,5 +1,5 @@
 // Lógica principal de la aplicación Forestando Juntos
-const APP_VERSION = 'v3.7';
+const APP_VERSION = 'v3.8';
 
 let state = {
     trees: [],
@@ -90,18 +90,28 @@ async function loadInitialData() {
             if (!treesErr && treesData && treesData.length > 0) {
                 // Supabase Cloud es la Fuente Única de Verdad (Single Source of Truth)
                 state.trees = treesData.map(t => {
+                    let photosList = (t.tree_photos && Array.isArray(t.tree_photos)) ? t.tree_photos : [];
                     let photoUrl = t.primary_photo_url;
-                    if (!photoUrl && t.tree_photos && Array.isArray(t.tree_photos) && t.tree_photos.length > 0) {
-                        const primary = t.tree_photos.find(p => p.is_primary) || t.tree_photos[0];
+                    if (!photoUrl && photosList.length > 0) {
+                        const primary = photosList.find(p => p.is_primary) || photosList[0];
                         if (primary && primary.url) {
                             photoUrl = primary.url;
                         }
+                    }
+                    if (!photosList.length && photoUrl) {
+                        photosList = [{
+                            id: 'photo-init-' + t.id,
+                            url: photoUrl,
+                            created_at: t.planting_date || t.created_at || new Date().toISOString().split('T')[0],
+                            notes: 'Siembra inicial'
+                        }];
                     }
                     return {
                         ...t,
                         status: t.status || 'approved',
                         species_name: t.custom_species_name || t.display_species || t.species_name || 'Guayacán Morado',
-                        primary_photo_url: photoUrl || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80'
+                        primary_photo_url: photoUrl || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80',
+                        tree_photos: photosList
                     };
                 });
                 saveTreesToStorage();
@@ -906,9 +916,9 @@ function renderTreeProfile(code) {
     container.innerHTML = `
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden max-w-4xl mx-auto border border-emerald-100">
             <div class="relative h-72 sm:h-96 w-full bg-gray-900">
-                <img src="${tree.primary_photo_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80'}" 
+                <img id="tree-profile-main-img" src="${tree.primary_photo_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80'}" 
                      onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80';"
-                     class="w-full h-full object-cover opacity-90" alt="${tree.species_name}">
+                     class="w-full h-full object-cover opacity-90 transition-all duration-300" alt="${tree.species_name}">
                 <div class="absolute top-4 left-4">
                     <span class="px-4 py-1.5 bg-emerald-600 text-white font-bold text-sm rounded-full shadow-lg">
                         ${tree.code}
@@ -933,6 +943,42 @@ function renderTreeProfile(code) {
                     <div class="bg-emerald-50 p-4 rounded-xl">
                         <p class="text-xs text-emerald-800 font-semibold uppercase">Estado</p>
                         <span class="inline-block mt-1 px-3 py-1 bg-emerald-200 text-emerald-900 text-xs font-bold rounded-md">🌱 Registrado & Aprobado</span>
+                    </div>
+                </div>
+
+                <!-- Línea de Tiempo de Crecimiento / Fotos de Evolución (Idea 3) -->
+                <div class="bg-emerald-50/70 p-5 rounded-2xl border border-emerald-200/80 space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-emerald-200/60 pb-3">
+                        <div>
+                            <h3 class="text-sm font-extrabold text-emerald-950 flex items-center gap-2 uppercase tracking-wide">
+                                📸 Línea de Tiempo de Crecimiento ("Antes y Después")
+                            </h3>
+                            <p class="text-xs text-emerald-800">Evolución fotográfica del árbol desde su siembra.</p>
+                        </div>
+                        ${canDownloadCertificate(tree.code) ? `
+                            <button onclick="openAddPhotoModal('${tree.code}')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-transform hover:scale-105">
+                                ➕ Agregar Foto de Crecimiento
+                            </button>
+                        ` : ''}
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                        ${(tree.tree_photos && tree.tree_photos.length > 0 ? tree.tree_photos : [{
+                            url: tree.primary_photo_url,
+                            created_at: tree.planting_date,
+                            notes: 'Siembra inicial'
+                        }]).map((p, idx) => `
+                            <div onclick="setProfileActivePhoto('${p.url}')" class="relative group cursor-pointer bg-white p-2 rounded-xl border border-emerald-100 shadow-sm hover:shadow-md transition-all text-center">
+                                <img src="${p.url}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80';" class="w-full h-24 object-cover rounded-lg group-hover:scale-105 transition-transform">
+                                <div class="mt-1.5">
+                                    <span class="inline-block text-[10px] font-extrabold px-1.5 py-0.5 ${idx === 0 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'} rounded-md">
+                                        ${idx === 0 ? '🌱 Siembra Inicial' : `Foto #${idx + 1}`}
+                                    </span>
+                                    <p class="text-[10px] text-slate-500 font-mono mt-0.5">${p.created_at ? p.created_at.split('T')[0] : ''}</p>
+                                    ${p.notes ? `<p class="text-[9px] text-slate-600 italic truncate max-w-full" title="${p.notes}">${p.notes}</p>` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
                     </div>
                 </div>
 
@@ -1116,6 +1162,109 @@ function shareCertificateLink() {
     const treeUrl = `${window.location.origin}${window.location.pathname}#arbol?code=${encodeURIComponent(currentCertCode)}`;
     const text = encodeURIComponent(`🌱 ¡Mira mi Certificado Oficial de Siembra en Forestando Juntos Panamá! 🇵🇦\nÁrbol ${currentCertCode}\n👉 ${treeUrl}`);
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+}
+
+// Funciones para Fotos de Seguimiento y Evolución del Árbol (Idea 3)
+let selectedFollowUpPhotoDataUrl = '';
+
+function setProfileActivePhoto(url) {
+    const mainImg = document.getElementById('tree-profile-main-img');
+    if (mainImg) {
+        mainImg.src = url;
+    }
+}
+
+function openAddPhotoModal(code) {
+    const codeInput = document.getElementById('input-followup-tree-code');
+    if (codeInput) codeInput.value = code;
+
+    const preview = document.getElementById('followup-photo-preview');
+    if (preview) preview.classList.add('hidden');
+
+    const photoInput = document.getElementById('input-followup-photo');
+    if (photoInput) photoInput.value = '';
+
+    const noteInput = document.getElementById('input-followup-note');
+    if (noteInput) noteInput.value = '';
+
+    selectedFollowUpPhotoDataUrl = '';
+    const modal = document.getElementById('modal-add-tree-photo');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeAddPhotoModal() {
+    const modal = document.getElementById('modal-add-tree-photo');
+    if (modal) modal.classList.add('hidden');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const followupPhotoInput = document.getElementById('input-followup-photo');
+    if (followupPhotoInput) {
+        followupPhotoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                selectedFollowUpPhotoDataUrl = evt.target.result;
+                const preview = document.getElementById('followup-photo-preview');
+                const img = document.getElementById('followup-preview-img');
+                if (img && preview) {
+                    img.src = selectedFollowUpPhotoDataUrl;
+                    preview.classList.remove('hidden');
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+});
+
+async function handleFollowUpPhotoSubmit(e) {
+    if (e && e.preventDefault) e.preventDefault();
+
+    const code = document.getElementById('input-followup-tree-code').value;
+    const note = document.getElementById('input-followup-note').value.trim();
+
+    if (!selectedFollowUpPhotoDataUrl) {
+        alert('⚠️ Por favor selecciona una imagen para subir.');
+        return;
+    }
+
+    const tree = state.trees.find(t => t.code === code || t.id === code);
+    if (!tree) {
+        alert('⚠️ Árbol no encontrado.');
+        return;
+    }
+
+    const newPhoto = {
+        id: 'photo-' + Date.now(),
+        tree_id: tree.id,
+        url: selectedFollowUpPhotoDataUrl,
+        created_at: new Date().toISOString().split('T')[0],
+        notes: note || 'Seguimiento de crecimiento'
+    };
+
+    if (!tree.tree_photos) tree.tree_photos = [];
+    tree.tree_photos.push(newPhoto);
+    saveTreesToStorage();
+
+    // Guardar en Supabase Cloud si hay conexión
+    const sb = getSupabaseClient();
+    if (sb && navigator.onLine && tree.id) {
+        try {
+            await sb.from('tree_photos').insert({
+                tree_id: tree.id,
+                url: selectedFollowUpPhotoDataUrl,
+                is_primary: false,
+                notes: note || 'Seguimiento de crecimiento'
+            });
+        } catch (err) {
+            console.warn('Error al guardar foto de seguimiento en Supabase Cloud:', err);
+        }
+    }
+
+    closeAddPhotoModal();
+    showToast('🌱 ¡Foto de crecimiento agregada con éxito!');
+    renderTreeProfile(code);
 }
 
 // Renderizar Panel de Administración con Autenticación
