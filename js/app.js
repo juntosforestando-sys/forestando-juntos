@@ -1,5 +1,5 @@
 // Lógica principal de la aplicación Forestando Juntos
-const APP_VERSION = 'v3.5';
+const APP_VERSION = 'v3.6';
 
 let state = {
     trees: [],
@@ -630,6 +630,18 @@ async function handleFormSubmit(e) {
         lastSubmittedTree = newTree;
         state.trees.unshift(newTree);
         saveTreesToStorage();
+
+        // Registrar este código como propiedad del usuario local en este dispositivo
+        try {
+            let myCodes = JSON.parse(localStorage.getItem('fj_my_tree_codes') || '[]');
+            if (!myCodes.includes(treeCode)) {
+                myCodes.push(treeCode);
+                localStorage.setItem('fj_my_tree_codes', JSON.stringify(myCodes));
+            }
+        } catch (e) {
+            console.warn('Error al guardar código de siembra en almacenamiento local:', e);
+        }
+
         updateStatsCounter();
         populateFilterDropdowns();
 
@@ -912,9 +924,15 @@ function renderTreeProfile(code) {
                 ` : ''}
 
                 <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100">
-                    <button onclick="openCertificateModal('${tree.code}')" class="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl text-center shadow-md transition-all flex items-center justify-center gap-2 text-sm transform hover:scale-[1.02]">
-                        📜 Ver y Descargar Certificado
-                    </button>
+                    ${canDownloadCertificate(tree.code) ? `
+                        <button onclick="openCertificateModal('${tree.code}')" class="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl text-center shadow-md transition-all flex items-center justify-center gap-2 text-sm transform hover:scale-[1.02]">
+                            📜 Ver y Descargar Mi Certificado
+                        </button>
+                    ` : `
+                        <div class="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl text-center text-xs font-medium flex items-center justify-center gap-1.5 border border-slate-200" title="El certificado digital es reservado para el sembrador de este árbol o el administrador">
+                            🔒 Certificado reservado al sembrador
+                        </div>
+                    `}
                     <button onclick="navigator.clipboard.writeText(window.location.href); alert('¡Enlace de la ficha copiado al portapapeles!');" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold rounded-xl text-center transition-colors text-sm">
                         🔗 Compartir Ficha
                     </button>
@@ -925,6 +943,25 @@ function renderTreeProfile(code) {
             </div>
         </div>
     `;
+}
+
+// Validación de Propiedad del Certificado (Opción B)
+function canDownloadCertificate(code) {
+    if (state.isAdminLoggedIn) return true;
+    if (!code) return false;
+
+    // Verificar si este árbol fue registrado recientemente en esta sesión
+    if (lastSubmittedTree && (lastSubmittedTree.code === code || lastSubmittedTree.id === code)) return true;
+
+    // Verificar si el árbol pertenece a los registros realizados en este dispositivo (localStorage)
+    try {
+        const myCodes = JSON.parse(localStorage.getItem('fj_my_tree_codes') || '[]');
+        if (Array.isArray(myCodes) && myCodes.includes(code)) return true;
+    } catch (e) {
+        console.warn('Error al verificar códigos propios en localStorage:', e);
+    }
+
+    return false;
 }
 
 // Funciones para el Certificado Digital de Siembra
@@ -944,6 +981,12 @@ function openCertificateModal(code) {
 
     if (!tree) {
         alert('⚠️ No hay árbol seleccionado para generar el certificado.');
+        return;
+    }
+
+    // Control de Permiso (Opción B): Solo el creador o el Administrador
+    if (!canDownloadCertificate(tree.code)) {
+        alert('🔒 El Certificado Digital de Siembra solo está disponible para la persona que registró este árbol o para el administrador.');
         return;
     }
 
@@ -1089,6 +1132,9 @@ function renderAdminDashboard() {
                 </span>
             </td>
             <td class="py-3 px-4 text-right space-x-1 whitespace-nowrap">
+                <button onclick="openCertificateModal('${t.code}')" class="px-2 py-1 bg-amber-500 text-white text-xs font-semibold rounded hover:bg-amber-600 shadow-sm" title="Generar e imprimir certificado oficial">
+                    📜 Certificado
+                </button>
                 <button onclick="focusTreeOnMap('${t.code}')" class="px-2 py-1 bg-amber-50 border border-amber-300 text-amber-800 hover:bg-amber-100 text-xs font-semibold rounded transition-colors" title="Ajustar posición en el mapa">
                     📍 Reubicar
                 </button>
