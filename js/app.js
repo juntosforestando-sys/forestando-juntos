@@ -1,5 +1,5 @@
 // Lógica principal de la aplicación Forestando Juntos
-const APP_VERSION = 'v3.9';
+const APP_VERSION = 'v4.0';
 
 let state = {
     trees: [],
@@ -109,6 +109,7 @@ async function loadInitialData() {
                     return {
                         ...t,
                         status: t.status || 'approved',
+                        pin: t.pin || t.security_pin || '1234',
                         species_name: t.custom_species_name || t.display_species || t.species_name || 'Guayacán Morado',
                         primary_photo_url: photoUrl || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80',
                         tree_photos: photosList
@@ -729,6 +730,13 @@ async function handleFormSubmit(e) {
         const lat = (latEl && parseFloat(latEl.value)) ? parseFloat(latEl.value) : state.currentFormCoords.lat;
         const lng = (lngEl && parseFloat(lngEl.value)) ? parseFloat(lngEl.value) : state.currentFormCoords.lng;
 
+        // Capturar o generar PIN de 4 dígitos (v4.0)
+        const rawPinEl = document.getElementById('input-security-pin');
+        const rawPin = rawPinEl ? rawPinEl.value.trim() : '';
+        const pin = (rawPin && rawPin.length === 4 && /^\d{4}$/.test(rawPin))
+            ? rawPin
+            : String(Math.floor(1000 + Math.random() * 9000));
+
         // Generar código único ARB-YYYY-XXXXXX
         const currentYear = new Date().getFullYear();
         const seq = state.trees.length + 1;
@@ -737,6 +745,7 @@ async function handleFormSubmit(e) {
         const newTree = {
             id: 'tree-' + Date.now(),
             code: treeCode,
+            pin: pin,
             planter_name: planterName,
             public_name: publicName,
             email: email,
@@ -783,6 +792,7 @@ async function handleFormSubmit(e) {
                     public_name: publicName,
                     email: email,
                     phone: phone,
+                    pin: pin,
                     custom_species_name: speciesName,
                     planting_date: plantingDate,
                     latitude: lat,
@@ -821,9 +831,12 @@ async function handleFormSubmit(e) {
         // Disparar automáticamente la confirmación por WhatsApp al participante
         sendWhatsAppConfirmation();
 
-        // Mostrar modal de éxito con el ID del árbol
+        // Mostrar modal de éxito con el ID del árbol y el PIN de seguridad
         const modalCode = document.getElementById('success-tree-code');
         if (modalCode) modalCode.textContent = treeCode;
+
+        const modalPin = document.getElementById('success-tree-pin');
+        if (modalPin) modalPin.textContent = pin;
         
         const modal = document.getElementById('modal-success');
         if (modal) modal.classList.remove('hidden');
@@ -906,6 +919,7 @@ function sendWhatsAppConfirmation() {
         `¡Felicidades y muchas gracias por sembrar vida y futuro en Panamá! 🇵🇦🌳\n\n` +
         `Queremos confirmarte que tu siembra ha sido registrada exitosamente en la plataforma *Forestando Juntos*:\n\n` +
         `📋 *Código Único:* ${lastSubmittedTree.code}\n` +
+        `🔑 *PIN de Seguridad:* ${lastSubmittedTree.pin || 'N/A'}\n` +
         `🌳 *Especie:* ${lastSubmittedTree.species_name}\n` +
         `📍 *Provincia:* ${lastSubmittedTree.province}\n` +
         `📅 *Fecha de Siembra:* ${lastSubmittedTree.planting_date}\n\n` +
@@ -1068,7 +1082,11 @@ function renderTreeProfile(code) {
                             <button onclick="openAddPhotoModal('${tree.code}')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-transform hover:scale-105">
                                 ➕ Agregar Foto de Crecimiento
                             </button>
-                        ` : ''}
+                        ` : `
+                            <button onclick="openPINModal('${tree.code}')" class="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-bold rounded-xl text-xs flex items-center gap-1 shadow-sm">
+                                🔑 Ingresar PIN para subir fotos
+                            </button>
+                        `}
                     </div>
 
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -1136,9 +1154,9 @@ function renderTreeProfile(code) {
                             📜 Ver y Descargar Mi Certificado
                         </button>
                     ` : `
-                        <div class="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl text-center text-xs font-medium flex items-center justify-center gap-1.5 border border-slate-200" title="El certificado digital es reservado para el sembrador de este árbol o el administrador">
-                            🔒 Certificado reservado al sembrador
-                        </div>
+                        <button onclick="openPINModal('${tree.code}')" class="flex-1 py-3 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-extrabold rounded-xl text-center shadow-sm transition-all flex items-center justify-center gap-2 text-xs">
+                            🔑 ¿Eres el sembrador? Ingresar PIN (4 Dígitos)
+                        </button>
                     `}
                     <button onclick="navigator.clipboard.writeText(window.location.href); alert('¡Enlace de la ficha copiado al portapapeles!');" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold rounded-xl text-center transition-colors text-sm">
                         🔗 Compartir Ficha
@@ -1150,6 +1168,73 @@ function renderTreeProfile(code) {
             </div>
         </div>
     `;
+}
+
+// Sistema de Verificación y Recuperación de PIN de 4 Dígitos (v4.0)
+let pendingVerificationCode = null;
+
+function openPINModal(code) {
+    pendingVerificationCode = code;
+    const treeCodeSpan = document.getElementById('pin-modal-tree-code');
+    if (treeCodeSpan) treeCodeSpan.textContent = code;
+
+    const inputPin = document.getElementById('input-verify-pin');
+    if (inputPin) inputPin.value = '';
+
+    const errorMsg = document.getElementById('pin-verify-error');
+    if (errorMsg) {
+        errorMsg.textContent = '';
+        errorMsg.classList.add('hidden');
+    }
+
+    const modal = document.getElementById('modal-enter-pin');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closePINModal() {
+    const modal = document.getElementById('modal-enter-pin');
+    if (modal) modal.classList.add('hidden');
+    pendingVerificationCode = null;
+}
+
+function submitPINVerification() {
+    if (!pendingVerificationCode) return;
+
+    const inputPinEl = document.getElementById('input-verify-pin');
+    const enteredPin = inputPinEl ? inputPinEl.value.trim() : '';
+    const errorMsg = document.getElementById('pin-verify-error');
+
+    if (!enteredPin || enteredPin.length !== 4) {
+        if (errorMsg) {
+            errorMsg.textContent = '⚠️ Ingresa un PIN válido de 4 dígitos.';
+            errorMsg.classList.remove('hidden');
+        }
+        return;
+    }
+
+    const tree = state.trees.find(t => t.code === pendingVerificationCode || t.id === pendingVerificationCode);
+    const expectedPin = tree ? (tree.pin || tree.security_pin) : null;
+
+    if (expectedPin && String(expectedPin).trim() === enteredPin) {
+        try {
+            let myCodes = JSON.parse(localStorage.getItem('fj_my_tree_codes') || '[]');
+            if (!myCodes.includes(pendingVerificationCode)) {
+                myCodes.push(pendingVerificationCode);
+                localStorage.setItem('fj_my_tree_codes', JSON.stringify(myCodes));
+            }
+        } catch (e) {
+            console.warn('Error al guardar código desbloqueado:', e);
+        }
+
+        closePINModal();
+        showToast('🔓 ¡PIN verificado con éxito! Ahora tienes acceso completo de sembrador para este árbol.');
+        renderTreeProfile(pendingVerificationCode);
+    } else {
+        if (errorMsg) {
+            errorMsg.textContent = '❌ PIN incorrecto. Si lo olvidaste, solicita ayuda al Administrador.';
+            errorMsg.classList.remove('hidden');
+        }
+    }
 }
 
 // Validación de Propiedad del Certificado (Opción B)
@@ -1438,7 +1523,11 @@ function renderAdminDashboard() {
                          class="w-10 h-10 object-cover rounded-lg border border-slate-200 shadow-sm cursor-pointer hover:scale-105 transition-transform"
                          onclick="showView('arbol', {code: '${t.code}'})" title="Ver Ficha y Foto Completa">
                 </td>
-                <td class="py-3 px-4 font-mono font-bold text-gray-800">${t.code}</td>
+                <td class="py-3 px-4 font-mono font-bold text-gray-800">
+                    ${t.code}
+                    <br>
+                    <span class="inline-block mt-1 px-1.5 py-0.5 bg-amber-100 text-amber-900 text-[10px] rounded font-bold border border-amber-200" title="PIN de Seguridad de 4 dígitos para recuperación">🔑 PIN: ${t.pin || t.security_pin || '----'}</span>
+                </td>
                 <td class="py-3 px-4 font-semibold text-gray-900">${t.species_name}</td>
                 <td class="py-3 px-4">
                     <div class="font-bold text-gray-900">${t.planter_name}</div>

@@ -389,6 +389,18 @@
                                 <input type="tel" id="input-phone" placeholder="Ej. +507 6000-0000" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
                             </div>
                         </div>
+
+                        <!-- PIN de Seguridad de 4 dígitos (v4.0) -->
+                        <div class="bg-amber-50/70 border border-amber-200/80 p-3.5 rounded-xl space-y-1.5">
+                            <label class="block text-xs font-bold text-slate-800 flex items-center justify-between">
+                                <span>🔑 PIN de Seguridad (4 Dígitos)</span>
+                                <span class="text-[10px] text-amber-700 font-normal">Opcional (se genera uno si se deja en blanco)</span>
+                            </label>
+                            <input type="text" id="input-security-pin" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="Ej. 1234" class="w-full p-2.5 bg-white border border-amber-300 rounded-lg text-sm font-mono tracking-widest text-center font-bold text-slate-800 focus:ring-2 focus:ring-amber-500">
+                            <p class="text-[11px] text-slate-600 leading-tight">
+                                💡 Este PIN te servirá para identificarte como el sembrador de este árbol y subir fotos de seguimiento o descargar tu certificado desde cualquier otro celular o computadora.
+                            </p>
+                        </div>
                     </div>
 
                     <!-- SECCIÓN 4: FOTOGRAFÍAS DE EVIDENCIA -->
@@ -434,6 +446,13 @@
                 <div class="p-3 bg-emerald-50 text-emerald-800 font-mono font-bold text-xl rounded-xl border border-emerald-200" id="success-tree-code">
                     ARB-2026-000000
                 </div>
+
+                <div class="bg-amber-50 border border-amber-200 p-3 rounded-xl space-y-1 text-center">
+                    <p class="text-xs text-amber-800 font-semibold">🔑 Tu PIN de Seguridad para este árbol:</p>
+                    <p class="text-2xl font-black font-mono text-amber-900 tracking-widest" id="success-tree-pin">----</p>
+                    <p class="text-[11px] text-amber-700 italic">Guarda este PIN. Te servirá si deseas actualizar fotos o descargar tu certificado desde otro celular o PC.</p>
+                </div>
+
                 <p class="text-xs text-slate-500">
                     El registro se encuentra en estado <strong>Pendiente</strong>. Tan pronto sea validado por el administrador, aparecerá automáticamente en el mapa público.
                 </p>
@@ -453,6 +472,38 @@
                 <button type="button" onclick="closeSuccessModal()" class="w-full py-2.5 text-slate-500 hover:text-slate-700 text-xs font-semibold">
                     Cerrar ventana
                 </button>
+            </div>
+        </div>
+
+        <!-- MODAL DE INGRESO DE PIN DE SEGURIDAD (v4.0) -->
+        <div id="modal-enter-pin" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-4 shadow-2xl relative">
+                <button type="button" onclick="closePINModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+                <div class="w-14 h-14 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-3xl mx-auto">
+                    🔑
+                </div>
+                <h3 class="text-xl font-extrabold text-slate-900">Verificar Propiedad del Árbol</h3>
+                <p class="text-xs text-slate-600">
+                    Ingresa el <strong>PIN de 4 dígitos</strong> que guardaste al registrar el árbol <span id="pin-modal-tree-code" class="font-mono font-bold text-slate-800"></span> para desbloquear tu certificado y fotos de seguimiento.
+                </p>
+                
+                <div class="space-y-1">
+                    <input type="password" id="input-verify-pin" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="••••" class="w-full p-3 bg-slate-50 border-2 border-amber-400 rounded-xl text-2xl text-center font-mono font-black tracking-widest focus:ring-2 focus:ring-amber-500 outline-none">
+                    <p id="pin-verify-error" class="hidden text-xs text-red-600 font-semibold pt-1"></p>
+                </div>
+
+                <div class="space-y-2 pt-2">
+                    <button type="button" onclick="submitPINVerification()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl shadow-md text-sm transition-all">
+                        🔓 Verificar PIN y Desbloquear
+                    </button>
+                    <button type="button" onclick="closePINModal()" class="w-full py-2 text-slate-500 hover:text-slate-700 text-xs font-semibold">
+                        Cancelar
+                    </button>
+                </div>
+
+                <p class="text-[11px] text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-100 leading-tight">
+                    💡 <strong>¿Olvidaste tu PIN?</strong> Contacta al Administrador de Forestando Juntos. El Administrador puede ver y recuperar tu PIN en el panel de control.
+                </p>
             </div>
         </div>
 
