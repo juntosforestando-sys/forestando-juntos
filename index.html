@@ -36,8 +36,11 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
+    <!-- html2canvas para generación de Certificados en PNG -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
     <!-- Estilos de la Aplicación -->
-    <link rel="stylesheet" href="css/styles.css?v=3.4">
+    <link rel="stylesheet" href="css/styles.css?v=3.5">
 </head>
 <body class="h-full flex flex-col bg-slate-50 text-slate-800 antialiased">
 
@@ -343,13 +346,16 @@
                     El registro se encuentra en estado <strong>Pendiente</strong>. Tan pronto sea validado por el administrador, aparecerá automáticamente en el mapa público.
                 </p>
                 
-                <!-- Botones de Envío por WhatsApp -->
+                <!-- Botones de Envío por WhatsApp y Certificado -->
                 <div class="space-y-2 pt-2">
-                    <button type="button" onclick="sendWhatsAppConfirmation()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow text-sm">
+                    <button type="button" onclick="closeSuccessModal(); openCertificateModal(lastSubmittedTree ? lastSubmittedTree.code : '')" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl flex items-center justify-center gap-2 shadow-md text-sm transition-all transform hover:scale-[1.02]">
+                        📜 Ver y Descargar Mi Certificado Digital
+                    </button>
+                    <button type="button" onclick="sendWhatsAppConfirmation()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow text-sm">
                         💬 Recibir Confirmación en WhatsApp
                     </button>
-                    <button type="button" onclick="sendAdminNotificationWhatsApp()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow text-sm">
-                        🔔 Notificar al Administrador (Aviso de Registro)
+                    <button type="button" onclick="sendAdminNotificationWhatsApp()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl flex items-center justify-center gap-2 text-xs">
+                        🔔 Notificar al Administrador
                     </button>
                 </div>
                 <button type="button" onclick="closeSuccessModal()" class="w-full py-2.5 text-slate-500 hover:text-slate-700 text-xs font-semibold">
@@ -491,8 +497,107 @@
                         </table>
                     </div>
                 </div>
+        <!-- MODAL DE CERTIFICADO DIGITAL DE SIEMBRA -->
+        <div id="modal-certificate" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto hidden">
+            <div class="relative bg-white rounded-3xl shadow-2xl max-w-3xl w-full p-4 sm:p-6 space-y-4 max-h-[95vh] overflow-y-auto">
+                <!-- Header Modal -->
+                <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                    <h3 class="text-lg font-extrabold text-slate-800 flex items-center gap-2">
+                        📜 Certificado Oficial de Siembra
+                    </h3>
+                    <button onclick="closeCertificateModal()" class="text-slate-400 hover:text-slate-700 text-xl font-bold p-1">✕</button>
+                </div>
+
+                <!-- DIPLOMA CARD (Capturado por html2canvas) -->
+                <div id="certificate-card" class="bg-gradient-to-br from-emerald-950 via-slate-900 to-emerald-900 text-white p-6 sm:p-10 rounded-2xl border-4 border-amber-400/80 shadow-2xl relative overflow-hidden text-center space-y-6">
+                    <!-- Decoración de Fondo -->
+                    <div class="absolute -top-16 -right-16 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="absolute -bottom-16 -left-16 w-64 h-64 bg-amber-400/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                    <!-- Encabezado Diploma -->
+                    <div class="flex flex-col items-center space-y-2 relative z-10">
+                        <div class="flex items-center gap-3">
+                            <img src="img/logo.jpg" class="w-14 h-14 rounded-full border-2 border-amber-400 shadow-md object-cover">
+                            <div class="text-left">
+                                <span class="text-xl font-black text-emerald-400 tracking-tight block">Forestando Juntos</span>
+                                <span class="text-xs font-semibold text-emerald-200 tracking-widest uppercase block">República de Panamá 🇵🇦</span>
+                            </div>
+                        </div>
+                        <div class="pt-2">
+                            <span class="px-4 py-1 bg-amber-400/20 text-amber-300 border border-amber-400/40 font-mono text-[11px] font-bold rounded-full uppercase tracking-widest shadow-sm">
+                                RECONOCIMIENTO AMBIENTAL OFICIAL
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Título -->
+                    <div class="space-y-1 relative z-10">
+                        <h1 class="text-2xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-emerald-200 to-amber-300 tracking-wide">
+                            CERTIFICADO DE HUELLA VERDE
+                        </h1>
+                        <p class="text-xs sm:text-sm text-emerald-200/90 italic">Se otorga el presente reconocimiento con honor y gratitud a:</p>
+                    </div>
+
+                    <!-- Nombre del Sembrador -->
+                    <div class="py-2 border-y border-amber-400/30 relative z-10">
+                        <h2 id="cert-planter-name" class="text-2xl sm:text-3xl font-black text-amber-300 tracking-wide">
+                            Cargando Nombre...
+                        </h2>
+                    </div>
+
+                    <p class="text-xs sm:text-sm text-slate-200 max-w-xl mx-auto leading-relaxed relative z-10">
+                        Por su valioso compromiso con la reforestación, sembrando vida, restaurando ecosistemas y dejando una huella verde perdurable para las futuras generaciones de Panamá.
+                    </p>
+
+                    <!-- Ficha Técnica & QR -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-950/70 p-4 rounded-xl border border-emerald-500/30 relative z-10 text-left text-xs">
+                        <div class="flex items-center justify-center">
+                            <img id="cert-photo" src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80" class="w-24 h-24 sm:w-28 sm:h-28 object-cover rounded-lg border-2 border-emerald-400 shadow-md">
+                        </div>
+                        <div class="space-y-1.5 sm:col-span-1 justify-center flex flex-col">
+                            <div>
+                                <span class="text-emerald-400 font-bold uppercase text-[10px] block">Código de Siembra</span>
+                                <span id="cert-code" class="font-mono font-black text-amber-300 text-sm">ARB-000000</span>
+                            </div>
+                            <div>
+                                <span class="text-emerald-400 font-bold uppercase text-[10px] block">Especie Sembrada</span>
+                                <span id="cert-species" class="font-bold text-white text-xs">Guayacán Morado</span>
+                            </div>
+                            <div>
+                                <span class="text-emerald-400 font-bold uppercase text-[10px] block">Ubicación & Fecha</span>
+                                <span id="cert-location" class="text-slate-300 text-[11px] block">Veraguas • 2026-10-04</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-center justify-center space-y-1 border-t sm:border-t-0 sm:border-l border-emerald-500/30 pt-2 sm:pt-0">
+                            <img id="cert-qr-img" src="" class="w-20 h-20 bg-white p-1 rounded-lg border border-amber-300 shadow">
+                            <span class="text-[9px] text-emerald-300 font-mono text-center">Escanea para verificar en la web</span>
+                        </div>
+                    </div>
+
+                    <!-- Pie del Diploma -->
+                    <div class="flex flex-wrap justify-between items-end pt-2 text-[10px] text-emerald-200/80 border-t border-emerald-800/60 relative z-10">
+                        <div class="text-left space-y-0.5">
+                            <p class="font-bold text-emerald-300">🌱 Forestando Juntos — Panamá</p>
+                            <p class="text-[9px]">Validado por Supabase Cloud (SSOT)</p>
+                        </div>
+                        <div class="text-right space-y-0.5">
+                            <p class="font-bold text-amber-300">Desarrollado por Nando Compusystem © 2026</p>
+                            <p class="text-[9px] text-slate-400">forestandojuntos.org</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Acciones Modal -->
+                <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                    <button onclick="downloadCertificatePNG()" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 text-sm transition-colors">
+                        📥 Descargar Certificado (Imagen PNG)
+                    </button>
+                    <button onclick="shareCertificateLink()" class="py-3 px-6 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
+                        📲 Compartir por WhatsApp
+                    </button>
+                </div>
             </div>
-        </section>
+        </div>
 
     </main>
 
@@ -504,7 +609,7 @@
             <p class="pt-2 text-slate-400 text-[11px] border-t border-slate-100 w-fit mx-auto px-6 flex items-center justify-center gap-2 flex-wrap">
                 <span>Desarrollado por <span class="font-bold text-emerald-800">Nando Compusystem</span> © 2026 • Todos los derechos reservados</span>
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm" title="Versión actual de la plataforma en ejecución">
-                    v3.4
+                    v3.5
                 </span>
                 <span class="inline-block text-slate-300">• <a href="#admin" onclick="showView('admin')" class="hover:text-slate-500 transition-colors opacity-50" title="Acceso Administrativo">🔒</a></span>
             </p>
@@ -513,8 +618,8 @@
 
     <!-- JS de la Aplicación -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase-config.js?v=3.4"></script>
-    <script src="js/app.js?v=3.4"></script>
+    <script src="js/supabase-config.js?v=3.5"></script>
+    <script src="js/app.js?v=3.5"></script>
 
 </body>
 </html>

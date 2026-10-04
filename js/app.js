@@ -1,5 +1,5 @@
 // Lógica principal de la aplicación Forestando Juntos
-const APP_VERSION = 'v3.4';
+const APP_VERSION = 'v3.5';
 
 let state = {
     trees: [],
@@ -911,17 +911,116 @@ function renderTreeProfile(code) {
                 </div>
                 ` : ''}
 
-                <div class="flex flex-col sm:flex-row gap-4 pt-4 border-t border-gray-100">
-                    <button onclick="navigator.clipboard.writeText(window.location.href); alert('¡Enlace de la ficha copiado al portapapeles!');" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold rounded-xl text-center transition-colors">
+                <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100">
+                    <button onclick="openCertificateModal('${tree.code}')" class="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl text-center shadow-md transition-all flex items-center justify-center gap-2 text-sm transform hover:scale-[1.02]">
+                        📜 Ver y Descargar Certificado
+                    </button>
+                    <button onclick="navigator.clipboard.writeText(window.location.href); alert('¡Enlace de la ficha copiado al portapapeles!');" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold rounded-xl text-center transition-colors text-sm">
                         🔗 Compartir Ficha
                     </button>
-                    <button onclick="showView('mapa')" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-center transition-colors">
-                        🗺️ Ver en el Mapa Público
+                    <button onclick="showView('mapa')" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-center transition-colors text-sm">
+                        🗺️ Ver en Mapa
                     </button>
                 </div>
             </div>
         </div>
     `;
+}
+
+// Funciones para el Certificado Digital de Siembra
+let currentCertCode = '';
+
+function openCertificateModal(code) {
+    let tree = null;
+    if (code) {
+        tree = state.trees.find(t => t.code === code || t.id === code);
+    }
+    if (!tree && lastSubmittedTree) {
+        tree = lastSubmittedTree;
+    }
+    if (!tree && state.trees.length > 0) {
+        tree = state.trees[0];
+    }
+
+    if (!tree) {
+        alert('⚠️ No hay árbol seleccionado para generar el certificado.');
+        return;
+    }
+
+    currentCertCode = tree.code || 'ARB-000000';
+    
+    const planterEl = document.getElementById('cert-planter-name');
+    if (planterEl) planterEl.textContent = tree.public_name || tree.planter_name || 'Sembrador Voluntario';
+
+    const codeEl = document.getElementById('cert-code');
+    if (codeEl) codeEl.textContent = tree.code || 'ARB-000000';
+
+    const speciesEl = document.getElementById('cert-species');
+    if (speciesEl) speciesEl.textContent = tree.species_name || 'Guayacán Morado';
+
+    const locationEl = document.getElementById('cert-location');
+    if (locationEl) locationEl.textContent = `${tree.province || 'Panamá'} • ${tree.planting_date || new Date().toISOString().split('T')[0]}`;
+
+    const photoImg = document.getElementById('cert-photo');
+    if (photoImg) {
+        photoImg.src = tree.primary_photo_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80';
+        photoImg.onerror = function() {
+            this.onerror = null;
+            this.src = 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80';
+        };
+    }
+
+    const treeUrl = `${window.location.origin}${window.location.pathname}#arbol?code=${encodeURIComponent(tree.code)}`;
+    const qrImg = document.getElementById('cert-qr-img');
+    if (qrImg) {
+        qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(treeUrl)}`;
+    }
+
+    const modal = document.getElementById('modal-certificate');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeCertificateModal() {
+    const modal = document.getElementById('modal-certificate');
+    if (modal) modal.classList.add('hidden');
+}
+
+async function downloadCertificatePNG() {
+    const certCard = document.getElementById('certificate-card');
+    if (!certCard) return;
+
+    showToast('⏳ Generando tu Certificado Digital en alta resolución...');
+    try {
+        if (typeof html2canvas === 'undefined') {
+            alert('⚠️ El generador de imágenes se está cargando. Por favor intenta de nuevo en 2 segundos.');
+            return;
+        }
+
+        const canvas = await html2canvas(certCard, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: null
+        });
+
+        const image = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.href = image;
+        link.download = `Certificado_Siembra_${currentCertCode}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast('✅ ¡Certificado descargado con éxito!');
+    } catch (err) {
+        console.error('Error al generar imagen de certificado:', err);
+        showToast('⚠️ Ocurrió un inconveniente al generar la imagen. Puedes tomarle una captura de pantalla.');
+    }
+}
+
+function shareCertificateLink() {
+    const treeUrl = `${window.location.origin}${window.location.pathname}#arbol?code=${encodeURIComponent(currentCertCode)}`;
+    const text = encodeURIComponent(`🌱 ¡Mira mi Certificado Oficial de Siembra en Forestando Juntos Panamá! 🇵🇦\nÁrbol ${currentCertCode}\n👉 ${treeUrl}`);
+    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
 }
 
 // Renderizar Panel de Administración con Autenticación

@@ -1,5 +1,5 @@
 // Service Worker para soporte 100% Offline en campo (Forestando Juntos)
-const CACHE_NAME = 'forestando-juntos-v3.4';
+const CACHE_NAME = 'forestando-juntos-v3.5';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -11,13 +11,14 @@ const ASSETS_TO_CACHE = [
     'https://cdn.tailwindcss.com',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
     'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
 ];
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            console.log('[SW v3.4] Cacheando recursos principales para modo offline...');
+            console.log('[SW v3.5] Cacheando recursos principales para modo offline...');
             return cache.addAll(ASSETS_TO_CACHE).catch(err => console.warn('[SW] Error cacheando algunos recursos:', err));
         })
     );
