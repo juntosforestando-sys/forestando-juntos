@@ -1,5 +1,5 @@
 // Lógica principal de la aplicación Forestando Juntos
-const APP_VERSION = 'v3.8';
+const APP_VERSION = 'v3.9';
 
 let state = {
     trees: [],
@@ -277,7 +277,107 @@ function populateFilterDropdowns() {
     });
 }
 
-// Actualizar Contador Estadístico y Calculadora de Impacto Ecológico (Idea 2)
+// Sistema de Gamificación, Insignias y Ranking (Idea 4)
+function getPlanterBadge(treeCount) {
+    const count = parseInt(treeCount, 10) || 1;
+    if (count >= 10) {
+        return {
+            title: '👑 Héroe Ambiental',
+            badgeClass: 'bg-amber-100 text-amber-900 border-amber-300',
+            icon: '👑',
+            desc: 'Líder ecológico en Panamá'
+        };
+    } else if (count >= 5) {
+        return {
+            title: '🥇 Bosque Humano',
+            badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+            icon: '🥇',
+            desc: 'Creador de mini bosques'
+        };
+    } else if (count >= 3) {
+        return {
+            title: '🥈 Guardián de la Cuenca',
+            badgeClass: 'bg-cyan-100 text-cyan-900 border-cyan-300',
+            icon: '🥈',
+            desc: 'Protector del agua y suelo'
+        };
+    } else {
+        return {
+            title: '🥉 Sembrador Inicial',
+            badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
+            icon: '🥉',
+            desc: 'Inició su huella verde'
+        };
+    }
+}
+
+function renderProvinceRanking() {
+    const container = document.getElementById('province-ranking-container');
+    if (!container) return;
+
+    const historicalTrees = state.trees.filter(t => t.status === 'approved' || t.status === 'dead' || t.status === 'baja' || !t.status);
+    if (!historicalTrees.length) {
+        container.innerHTML = `<p class="text-xs text-slate-500 italic text-center py-4">No hay datos de siembras suficientes para generar la tabla de posiciones.</p>`;
+        return;
+    }
+
+    const countsByProvince = {};
+    historicalTrees.forEach(t => {
+        const prov = t.province || 'No especificada';
+        countsByProvince[prov] = (countsByProvince[prov] || 0) + 1;
+    });
+
+    const sortedProvinces = Object.entries(countsByProvince)
+        .map(([province, count]) => ({ province, count }))
+        .sort((a, b) => b.count - a.count);
+
+    const maxCount = sortedProvinces[0] ? sortedProvinces[0].count : 1;
+
+    container.innerHTML = sortedProvinces.map((item, index) => {
+        const percentage = Math.round((item.count / historicalTrees.length) * 100);
+        const barWidth = Math.max(15, Math.round((item.count / maxCount) * 100));
+
+        let medal = `#${index + 1}`;
+        let badgeColor = 'bg-slate-100 text-slate-700 border-slate-200';
+        let barColor = 'bg-emerald-500';
+
+        if (index === 0) {
+            medal = '🥇 1° Lugar';
+            badgeColor = 'bg-amber-100 text-amber-900 border-amber-300 font-bold';
+            barColor = 'bg-gradient-to-r from-amber-500 to-emerald-600';
+        } else if (index === 1) {
+            medal = '🥈 2° Lugar';
+            badgeColor = 'bg-slate-100 text-slate-900 border-slate-300 font-bold';
+            barColor = 'bg-emerald-600';
+        } else if (index === 2) {
+            medal = '🥉 3° Lugar';
+            badgeColor = 'bg-orange-100 text-amber-950 border-orange-200 font-bold';
+            barColor = 'bg-emerald-700';
+        }
+
+        return `
+            <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-2">
+                <div class="flex justify-between items-center text-xs font-bold">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] border ${badgeColor}">
+                            ${medal}
+                        </span>
+                        <span class="text-slate-900 text-sm font-extrabold">${item.province}</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-emerald-800 font-mono text-sm">${item.count} árbol${item.count > 1 ? 'es' : ''}</span>
+                        <span class="text-slate-400 font-normal text-[11px] ml-1.5">(${percentage}%)</span>
+                    </div>
+                </div>
+                <div class="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
+                    <div class="${barColor} h-full rounded-full transition-all duration-500" style="width: ${barWidth}%;"></div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Actualizar Contador Estadístico, Calculadora de Impacto y Ranking (Ideas 2 y 4)
 function updateStatsCounter() {
     // Registros históricos válidos (aprobados y dados de baja) para no perder la estadística de siembras realizadas
     const historicalTrees = state.trees.filter(t => t.status === 'approved' || t.status === 'dead' || t.status === 'baja' || !t.status);
@@ -294,10 +394,6 @@ function updateStatsCounter() {
     if (elProvinces) elProvinces.textContent = provincesCount;
 
     // Fórmulas Ecológicas Estimadas (ANAM / STRI para trópicos panameños)
-    // 1 árbol nativo absorbe ~21 kg CO2/año
-    // 2 árboles producen oxígeno para ~1 persona/año (0.5 personas por árbol)
-    // 1 árbol infiltra ~250 Litros de agua de lluvia/año a mantos freáticos
-    // 1 árbol provee ~10 m² de sombra/cobertura forestal
     const co2KgYear = Math.round(totalCount * 21);
     const o2PeopleYear = Math.round(totalCount * 0.5);
     const waterLitersYear = Math.round(totalCount * 250);
@@ -312,6 +408,9 @@ function updateStatsCounter() {
     if (elO2) elO2.textContent = `${o2PeopleYear.toLocaleString('es-PA')} pers/año`;
     if (elWater) elWater.textContent = `${waterLitersYear.toLocaleString('es-PA')} L/año`;
     if (elCanopy) elCanopy.textContent = `${canopyM2.toLocaleString('es-PA')} m²`;
+
+    // Actualizar Tabla de Posiciones de Provincias (Idea 4)
+    renderProvinceRanking();
 }
 
 // Geolocalización GPS para el Formulario
@@ -913,6 +1012,9 @@ function renderTreeProfile(code) {
         return;
     }
 
+    const planterTreeCount = state.trees.filter(t => (t.public_name && t.public_name === tree.public_name) || (t.planter_name && t.planter_name === tree.planter_name)).length;
+    const planterBadge = getPlanterBadge(planterTreeCount);
+
     container.innerHTML = `
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden max-w-4xl mx-auto border border-emerald-100">
             <div class="relative h-72 sm:h-96 w-full bg-gray-900">
@@ -932,9 +1034,16 @@ function renderTreeProfile(code) {
 
             <div class="p-6 sm:p-8 space-y-6">
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 border-b border-gray-100 pb-6">
-                    <div class="bg-emerald-50 p-4 rounded-xl">
-                        <p class="text-xs text-emerald-800 font-semibold uppercase">Sembrado por</p>
-                        <p class="text-lg font-bold text-gray-900">${tree.public_name}</p>
+                    <div class="bg-emerald-50 p-4 rounded-xl flex flex-col justify-between">
+                        <div>
+                            <p class="text-xs text-emerald-800 font-semibold uppercase">Sembrado por</p>
+                            <p class="text-lg font-bold text-gray-900">${tree.public_name}</p>
+                        </div>
+                        <div class="mt-2">
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${planterBadge.badgeClass}" title="${planterBadge.desc}">
+                                ${planterBadge.title} (${planterTreeCount} árbol${planterTreeCount > 1 ? 'es' : ''})
+                            </span>
+                        </div>
                     </div>
                     <div class="bg-emerald-50 p-4 rounded-xl">
                         <p class="text-xs text-emerald-800 font-semibold uppercase">Fecha de Siembra</p>
@@ -1092,6 +1201,13 @@ function openCertificateModal(code) {
     
     const planterEl = document.getElementById('cert-planter-name');
     if (planterEl) planterEl.textContent = tree.public_name || tree.planter_name || 'Sembrador Voluntario';
+
+    const planterTreeCount = state.trees.filter(t => (t.public_name && t.public_name === (tree.public_name || tree.planter_name)) || (t.planter_name && t.planter_name === (tree.planter_name || tree.public_name))).length;
+    const planterBadge = getPlanterBadge(planterTreeCount);
+    const certBadgeEl = document.getElementById('cert-planter-badge');
+    if (certBadgeEl) {
+        certBadgeEl.textContent = `${planterBadge.title} (${planterTreeCount} árbol${planterTreeCount > 1 ? 'es' : ''})`;
+    }
 
     const codeEl = document.getElementById('cert-code');
     if (codeEl) codeEl.textContent = tree.code || 'ARB-000000';
@@ -1297,34 +1413,40 @@ function renderAdminDashboard() {
         return new Date(b.created_at || 0) - new Date(a.created_at || 0);
     });
 
-    sortedTrees.forEach(t => {
-        const tr = document.createElement('tr');
-        tr.className = t.status === 'pending'
-            ? 'bg-amber-50/60 hover:bg-amber-100/60 transition-colors border-b border-amber-200 text-sm font-medium'
-            : 'hover:bg-gray-50 transition-colors border-b border-gray-100 text-sm';
-        
-        const s = (t.status || '').toLowerCase().trim();
-        const isPending = s === 'pending' || s === 'pendiente';
-        const isApproved = s === 'approved' || s === 'aprobado';
-        const isDead = s === 'dead' || s === 'baja';
-        const isRejected = s === 'rejected' || s === 'rechazado';
+        sortedTrees.forEach(t => {
+            const tr = document.createElement('tr');
+            tr.className = t.status === 'pending'
+                ? 'bg-amber-50/60 hover:bg-amber-100/60 transition-colors border-b border-amber-200 text-sm font-medium'
+                : 'hover:bg-gray-50 transition-colors border-b border-gray-100 text-sm';
+            
+            const s = (t.status || '').toLowerCase().trim();
+            const isPending = s === 'pending' || s === 'pendiente';
+            const isApproved = s === 'approved' || s === 'aprobado';
+            const isDead = s === 'dead' || s === 'baja';
+            const isRejected = s === 'rejected' || s === 'rechazado';
 
-        const badgeClass = isApproved ? 'badge-approved' : isDead ? 'badge-dead' : isRejected ? 'badge-rejected' : 'badge-pending';
-        const statusLabel = isApproved ? 'Aprobado 🌿' : isDead ? 'Dado de Baja 🥀' : isRejected ? 'Rechazado' : 'Pendiente ⏳';
+            const badgeClass = isApproved ? 'badge-approved' : isDead ? 'badge-dead' : isRejected ? 'badge-rejected' : 'badge-pending';
+            const statusLabel = isApproved ? 'Aprobado 🌿' : isDead ? 'Dado de Baja 🥀' : isRejected ? 'Rechazado' : 'Pendiente ⏳';
 
-        tr.innerHTML = `
-            <td class="py-3 px-4">
-                <img src="${t.primary_photo_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80'}" 
-                     onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80';"
-                     class="w-10 h-10 object-cover rounded-lg border border-slate-200 shadow-sm cursor-pointer hover:scale-105 transition-transform"
-                     onclick="showView('arbol', {code: '${t.code}'})" title="Ver Ficha y Foto Completa">
-            </td>
-            <td class="py-3 px-4 font-mono font-bold text-gray-800">${t.code}</td>
-            <td class="py-3 px-4 font-semibold text-gray-900">${t.species_name}</td>
-            <td class="py-3 px-4">
-                <div class="font-bold text-gray-900">${t.planter_name}</div>
-                <div class="text-xs text-emerald-800 font-mono">${t.email || ''} ${t.identity_card ? '• ' + t.identity_card : ''}</div>
-            </td>
+            const planterTreeCount = state.trees.filter(item => (item.public_name && item.public_name === (t.public_name || t.planter_name)) || (item.planter_name && item.planter_name === (t.planter_name || t.public_name))).length;
+            const planterBadge = getPlanterBadge(planterTreeCount);
+
+            tr.innerHTML = `
+                <td class="py-3 px-4">
+                    <img src="${t.primary_photo_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80'}" 
+                         onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80';"
+                         class="w-10 h-10 object-cover rounded-lg border border-slate-200 shadow-sm cursor-pointer hover:scale-105 transition-transform"
+                         onclick="showView('arbol', {code: '${t.code}'})" title="Ver Ficha y Foto Completa">
+                </td>
+                <td class="py-3 px-4 font-mono font-bold text-gray-800">${t.code}</td>
+                <td class="py-3 px-4 font-semibold text-gray-900">${t.species_name}</td>
+                <td class="py-3 px-4">
+                    <div class="font-bold text-gray-900">${t.planter_name}</div>
+                    <div class="text-xs text-emerald-800 font-mono">${t.email || ''} ${t.identity_card ? '• ' + t.identity_card : ''}</div>
+                    <span class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold border ${planterBadge.badgeClass}">
+                        ${planterBadge.title} (${planterTreeCount})
+                    </span>
+                </td>
             <td class="py-3 px-4">${t.province}</td>
             <td class="py-3 px-4">${t.planting_date}</td>
             <td class="py-3 px-4">

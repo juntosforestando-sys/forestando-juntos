@@ -227,6 +227,27 @@
                 </div>
             </div>
 
+            <!-- RANKING DE PROVINCIAS REFORESTADORAS (Idea 4) -->
+            <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-4">
+                    <div>
+                        <h3 class="text-xl sm:text-2xl font-extrabold text-slate-900 flex items-center gap-2">
+                            🏆 Tabla de Posiciones Reforestadoras de Panamá
+                        </h3>
+                        <p class="text-xs sm:text-sm text-slate-500">
+                            Provincias con más árboles sembrados y registrados en la plataforma.
+                        </p>
+                    </div>
+                    <button onclick="showView('mapa')" class="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-xl text-xs transition-colors flex items-center gap-1.5 border border-emerald-200">
+                        🗺️ Ver Mapa por Provincias
+                    </button>
+                </div>
+
+                <div id="province-ranking-container" class="space-y-3">
+                    <!-- Renderizado dinámicamente desde js/app.js -->
+                </div>
+            </div>
+
             <!-- Pasos del Flujo -->
             <div class="space-y-6">
                 <h2 class="text-2xl font-bold text-slate-900 text-center">¿Cómo funciona?</h2>
@@ -609,11 +630,16 @@
                         <p class="text-xs sm:text-sm text-emerald-200/90 italic">Se otorga el presente reconocimiento con honor y gratitud a:</p>
                     </div>
 
-                    <!-- Nombre del Sembrador -->
-                    <div class="py-2 border-y border-amber-400/30 relative z-10">
+                    <!-- Nombre del Sembrador e Insignia -->
+                    <div class="py-2 border-y border-amber-400/30 relative z-10 space-y-1">
                         <h2 id="cert-planter-name" class="text-2xl sm:text-3xl font-black text-amber-300 tracking-wide">
                             Cargando Nombre...
                         </h2>
+                        <div id="cert-planter-badge-container">
+                            <span id="cert-planter-badge" class="inline-block px-3 py-0.5 bg-amber-400/20 text-amber-300 border border-amber-400/40 text-[11px] font-bold rounded-full">
+                                🥉 Sembrador Inicial
+                            </span>
+                        </div>
                     </div>
 
                     <p class="text-xs sm:text-sm text-slate-200 max-w-xl mx-auto leading-relaxed relative z-10">
@@ -713,7 +739,7 @@
             <p class="pt-2 text-slate-400 text-[11px] border-t border-slate-100 w-fit mx-auto px-6 flex items-center justify-center gap-2 flex-wrap">
                 <span>Desarrollado por <span class="font-bold text-emerald-800">Nando Compusystem</span> © 2026 • Todos los derechos reservados</span>
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm" title="Versión actual de la plataforma en ejecución">
-                    v3.8
+                    v3.9
                 </span>
                 <span class="inline-block text-slate-300">• <a href="#admin" onclick="showView('admin')" class="hover:text-slate-500 transition-colors opacity-50" title="Acceso Administrativo">🔒</a></span>
             </p>
@@ -722,8 +748,8 @@
 
     <!-- JS de la Aplicación -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase-config.js?v=3.8"></script>
-    <script src="js/app.js?v=3.8"></script>
+    <script src="js/supabase-config.js?v=3.9"></script>
+    <script src="js/app.js?v=3.9"></script>
 
 </body>
 </html>
