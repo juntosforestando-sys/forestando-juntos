@@ -1218,17 +1218,22 @@ function submitPINVerification() {
     if (expectedPin && String(expectedPin).trim() === enteredPin) {
         try {
             let myCodes = JSON.parse(localStorage.getItem('fj_my_tree_codes') || '[]');
-            if (!myCodes.includes(pendingVerificationCode)) {
-                myCodes.push(pendingVerificationCode);
-                localStorage.setItem('fj_my_tree_codes', JSON.stringify(myCodes));
+            if (tree) {
+                if (tree.code && !myCodes.includes(tree.code)) myCodes.push(tree.code);
+                if (tree.id && !myCodes.includes(tree.id)) myCodes.push(tree.id);
             }
+            if (pendingVerificationCode && !myCodes.includes(pendingVerificationCode)) {
+                myCodes.push(pendingVerificationCode);
+            }
+            localStorage.setItem('fj_my_tree_codes', JSON.stringify(myCodes));
         } catch (e) {
             console.warn('Error al guardar código desbloqueado:', e);
         }
 
+        const targetCode = tree ? tree.code : pendingVerificationCode;
         closePINModal();
         showToast('🔓 ¡PIN verificado con éxito! Ahora tienes acceso completo de sembrador para este árbol.');
-        renderTreeProfile(pendingVerificationCode);
+        renderTreeProfile(targetCode);
     } else {
         if (errorMsg) {
             errorMsg.textContent = '❌ PIN incorrecto. Si lo olvidaste, solicita ayuda al Administrador.';
@@ -1248,7 +1253,14 @@ function canDownloadCertificate(code) {
     // Verificar si el árbol pertenece a los registros realizados en este dispositivo (localStorage)
     try {
         const myCodes = JSON.parse(localStorage.getItem('fj_my_tree_codes') || '[]');
-        if (Array.isArray(myCodes) && myCodes.includes(code)) return true;
+        if (Array.isArray(myCodes)) {
+            if (myCodes.includes(code) || myCodes.includes(String(code))) return true;
+            const tree = state.trees.find(t => t.code === code || t.id === code);
+            if (tree) {
+                if (tree.code && myCodes.includes(tree.code)) return true;
+                if (tree.id && myCodes.includes(tree.id)) return true;
+            }
+        }
     } catch (e) {
         console.warn('Error al verificar códigos propios en localStorage:', e);
     }
