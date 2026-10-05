@@ -1083,8 +1083,8 @@ function renderTreeProfile(code) {
                                 ➕ Agregar Foto de Crecimiento
                             </button>
                         ` : `
-                            <button onclick="openPINModal('${tree.code}')" class="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-bold rounded-xl text-xs flex items-center gap-1 shadow-sm">
-                                🔑 Ingresar PIN para subir fotos
+                            <button onclick="openPINModal('${tree.code}')" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-transform hover:scale-105">
+                                🌱 ¿Usted sembró este árbol?
                             </button>
                         `}
                     </div>
@@ -1155,7 +1155,7 @@ function renderTreeProfile(code) {
                         </button>
                     ` : `
                         <button onclick="openPINModal('${tree.code}')" class="flex-1 py-3 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-extrabold rounded-xl text-center shadow-sm transition-all flex items-center justify-center gap-2 text-xs">
-                            🔑 ¿Eres el sembrador? Ingresar PIN (4 Dígitos)
+                            🌱 ¿Usted sembró este árbol? (Ingresar PIN)
                         </button>
                     `}
                     <button onclick="navigator.clipboard.writeText(window.location.href); alert('¡Enlace de la ficha copiado al portapapeles!');" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold rounded-xl text-center transition-colors text-sm">
