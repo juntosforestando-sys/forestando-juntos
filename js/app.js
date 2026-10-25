@@ -17,27 +17,48 @@ let state = {
 };
 
 // Inicialización de la App
-document.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
     initApp();
-});
+}
 
 async function initApp() {
-    await loadInitialData();
+    // 1. Cargar datos locales de inmediato (0ms de espera, interactividad inmediata)
+    fallbackLocalData();
+    fallbackLocalSpecies();
+    populateSpeciesDropdown();
+    populateFilterDropdowns();
+    updateStatsCounter();
+    renderProvinceRanking();
+
+    // 2. Escuchadores de eventos y enrutamiento activos al instante
     setupEventListeners();
     handleHashRouting();
-    updateStatsCounter();
-    
-    // Registrar Service Worker para soporte offline en campo
+
+    // 3. Sincronización en segundo plano con Supabase Cloud
+    loadInitialData().then(() => {
+        updateStatsCounter();
+        renderProvinceRanking();
+        if (state.map) renderMapMarkers();
+    }).catch(err => console.warn('Sync inicial local fallback activo:', err));
+
+    // 4. Registrar Service Worker para soporte offline en campo
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js')
             .then(() => console.log('Service Worker de Forestando Juntos activo (Modo Offline)'))
             .catch(err => console.warn('Error registrando Service Worker:', err));
     }
 
-    // Escuchar cuando el dispositivo vuelva a tener señal
+    // 5. Escuchar cuando el dispositivo vuelva a tener señal
     window.addEventListener('online', () => {
-        showToast('📶 Conexión a internet restablecida. Sincronizando registros capturados...');
+        showToast('Conexión restablecida. Sincronizando registros capturados...');
         syncOfflineTrees();
+        loadInitialData().then(() => {
+            updateStatsCounter();
+            renderProvinceRanking();
+            if (state.map) renderMapMarkers();
+        });
     });
 
     // Intentar sincronizar si hay pendientes acumulados
@@ -179,10 +200,26 @@ function saveSpeciesToStorage() {
 
 // Control del Enrutador (Vistas)
 function showView(viewId, params = {}) {
+    // Normalizar alias de registro y estadísticas
+    if (viewId === 'registrar') viewId = 'registro';
+    
+    if (viewId === 'estadisticas' || viewId === 'ranking') {
+        viewId = 'home';
+        document.querySelectorAll('.app-view, main > section[id^="view-"]').forEach(v => v.classList.add('hidden'));
+        const homeView = document.getElementById('view-home');
+        if (homeView) homeView.classList.remove('hidden');
+
+        setTimeout(() => {
+            const section = document.getElementById('section-impacto') || document.getElementById('section-ranking') || document.getElementById('province-ranking-container');
+            if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+    }
+
     state.currentView = viewId;
     window.location.hash = viewId + (params.code ? `?code=${params.code}` : '');
     
-    document.querySelectorAll('.app-view').forEach(view => {
+    // Ocultar todas las vistas de forma garantizada
+    document.querySelectorAll('.app-view, main > section[id^="view-"]').forEach(view => {
         view.classList.add('hidden');
     });
 
@@ -191,14 +228,38 @@ function showView(viewId, params = {}) {
         targetView.classList.remove('hidden');
     }
 
+    // Actualizar estado visual de pestañas de navegación
+    const navMap = { home: 'nav-home', mapa: 'nav-mapa', estadisticas: 'nav-estadisticas', registro: 'nav-registro', admin: 'nav-admin' };
+    Object.keys(navMap).forEach(key => {
+        const navEl = document.getElementById(navMap[key]);
+        if (!navEl) return;
+        if (key === viewId) {
+            navEl.classList.add('text-canopy', 'font-bold');
+            navEl.classList.remove('text-ink-muted');
+        } else if (key !== 'registro') {
+            navEl.classList.remove('text-canopy', 'font-bold');
+            navEl.classList.add('text-ink-muted');
+        }
+    });
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     // Acciones específicas al entrar a cada vista
     if (viewId === 'mapa') {
-        setTimeout(() => initPublicMap(), 150);
-    } else if (viewId === 'registrar') {
+        setTimeout(() => {
+            initPublicMap();
+            if (state.map) {
+                state.map.invalidateSize();
+                renderMapMarkers();
+            }
+        }, 100);
+        setTimeout(() => {
+            if (state.map) state.map.invalidateSize();
+        }, 350);
+    } else if (viewId === 'registro') {
         setTimeout(() => {
             initFormMap();
+            if (state.formMap) state.formMap.invalidateSize();
             const dateInput = document.getElementById('input-date');
             if (dateInput && !dateInput.value) {
                 dateInput.value = new Date().toISOString().split('T')[0];
@@ -208,6 +269,9 @@ function showView(viewId, params = {}) {
             if (latInput && !latInput.value) latInput.value = state.currentFormCoords.lat.toFixed(6);
             if (lngInput && !lngInput.value) lngInput.value = state.currentFormCoords.lng.toFixed(6);
         }, 150);
+        setTimeout(() => {
+            if (state.formMap) state.formMap.invalidateSize();
+        }, 400);
     } else if (viewId === 'arbol' && params.code) {
         renderTreeProfile(params.code);
     } else if (viewId === 'admin') {
@@ -278,36 +342,36 @@ function populateFilterDropdowns() {
     });
 }
 
-// Sistema de Gamificación, Insignias y Ranking (Idea 4)
+// Reconocimiento comunitario por árboles sembrados
 function getPlanterBadge(treeCount) {
     const count = parseInt(treeCount, 10) || 1;
     if (count >= 10) {
         return {
-            title: '👑 Héroe Ambiental',
-            badgeClass: 'bg-amber-100 text-amber-900 border-amber-300',
-            icon: '👑',
-            desc: 'Líder ecológico en Panamá'
+            title: 'Sembrador Destacado',
+            badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+            icon: '🌱',
+            desc: '10 o más árboles registrados'
         };
     } else if (count >= 5) {
         return {
-            title: '🥇 Bosque Humano',
-            badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300',
-            icon: '🥇',
-            desc: 'Creador de mini bosques'
+            title: 'Sembrador Activo',
+            badgeClass: 'bg-sage-soft text-canopy border-sage/30',
+            icon: '🌱',
+            desc: '5 a 9 árboles registrados'
         };
     } else if (count >= 3) {
         return {
-            title: '🥈 Guardián de la Cuenca',
-            badgeClass: 'bg-cyan-100 text-cyan-900 border-cyan-300',
-            icon: '🥈',
-            desc: 'Protector del agua y suelo'
+            title: 'Sembrador Frecuente',
+            badgeClass: 'bg-ochre-soft text-ochre border-ochre/30',
+            icon: '🌱',
+            desc: '3 a 4 árboles registrados'
         };
     } else {
         return {
-            title: '🥉 Sembrador Inicial',
-            badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
-            icon: '🥉',
-            desc: 'Inició su huella verde'
+            title: 'Sembrador Comunitario',
+            badgeClass: 'bg-canvas text-canopy border-borderWarm',
+            icon: '🌱',
+            desc: '1 a 2 árboles registrados'
         };
     }
 }
@@ -318,7 +382,7 @@ function renderProvinceRanking() {
 
     const historicalTrees = state.trees.filter(t => t.status === 'approved' || t.status === 'dead' || t.status === 'baja' || !t.status);
     if (!historicalTrees.length) {
-        container.innerHTML = `<p class="text-xs text-slate-500 italic text-center py-4">No hay datos de siembras suficientes para generar la tabla de posiciones.</p>`;
+        container.innerHTML = `<p class="text-xs text-slate-500 italic text-center py-4">No hay datos de siembras registrados para mostrar por provincia.</p>`;
         return;
     }
 
@@ -336,49 +400,34 @@ function renderProvinceRanking() {
 
     container.innerHTML = sortedProvinces.map((item, index) => {
         const percentage = Math.round((item.count / historicalTrees.length) * 100);
-        const barWidth = Math.max(15, Math.round((item.count / maxCount) * 100));
+        const barWidth = Math.max(8, Math.round((item.count / maxCount) * 100));
 
-        let medal = `#${index + 1}`;
-        let badgeColor = 'bg-slate-100 text-slate-700 border-slate-200';
-        let barColor = 'bg-emerald-500';
-
-        if (index === 0) {
-            medal = '🥇 1° Lugar';
-            badgeColor = 'bg-amber-100 text-amber-900 border-amber-300 font-bold';
-            barColor = 'bg-gradient-to-r from-amber-500 to-emerald-600';
-        } else if (index === 1) {
-            medal = '🥈 2° Lugar';
-            badgeColor = 'bg-slate-100 text-slate-900 border-slate-300 font-bold';
-            barColor = 'bg-emerald-600';
-        } else if (index === 2) {
-            medal = '🥉 3° Lugar';
-            badgeColor = 'bg-orange-100 text-amber-950 border-orange-200 font-bold';
-            barColor = 'bg-emerald-700';
-        }
+        const isTop = index === 0;
 
         return `
-            <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-2">
-                <div class="flex justify-between items-center text-xs font-bold">
-                    <div class="flex items-center gap-2">
-                        <span class="px-2.5 py-0.5 rounded-full text-[11px] border ${badgeColor}">
-                            ${medal}
+            <div class="bg-surface p-3.5 rounded-2xl border border-borderWarm space-y-2 transition-all hover:border-emerald-500/40">
+                <div class="flex justify-between items-center text-xs">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-6 h-6 rounded-full ${isTop ? 'bg-emerald-600 text-white font-extrabold' : 'bg-canvas text-canopy border border-borderWarm font-semibold'} text-xs flex items-center justify-center">
+                            ${index + 1}
                         </span>
-                        <span class="text-slate-900 text-sm font-extrabold">${item.province}</span>
+                        <span class="text-canopy font-bold text-sm">${item.province}</span>
+                        ${isTop ? '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Líder</span>' : ''}
                     </div>
                     <div class="text-right">
-                        <span class="text-emerald-800 font-mono text-sm">${item.count} árbol${item.count > 1 ? 'es' : ''}</span>
-                        <span class="text-slate-400 font-normal text-[11px] ml-1.5">(${percentage}%)</span>
+                        <span class="text-emerald-700 font-bold text-xs">${item.count} árbol${item.count > 1 ? 'es' : ''}</span>
+                        <span class="text-ink-muted font-normal text-[11px] ml-1">(${percentage}%)</span>
                     </div>
                 </div>
-                <div class="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
-                    <div class="${barColor} h-full rounded-full transition-all duration-500" style="width: ${barWidth}%;"></div>
+                <div class="w-full bg-canvas h-2 rounded-full overflow-hidden border border-borderWarm/40">
+                    <div class="${isTop ? 'bg-emerald-600' : 'bg-emerald-800'} h-full rounded-full transition-all duration-500" style="width: ${barWidth}%;"></div>
                 </div>
             </div>
         `;
     }).join('');
 }
 
-// Actualizar Contador Estadístico, Calculadora de Impacto y Ranking (Ideas 2 y 4)
+// Actualizar métricas estadísticas, estimación de impacto y distribución por provincia
 function updateStatsCounter() {
     // Registros históricos válidos (aprobados y dados de baja) para no perder la estadística de siembras realizadas
     const historicalTrees = state.trees.filter(t => t.status === 'approved' || t.status === 'dead' || t.status === 'baja' || !t.status);
@@ -394,7 +443,7 @@ function updateStatsCounter() {
     if (elSpecies) elSpecies.textContent = speciesCount;
     if (elProvinces) elProvinces.textContent = provincesCount;
 
-    // Fórmulas Ecológicas Estimadas (ANAM / STRI para trópicos panameños)
+    // Factores referenciales de absorción y cobertura para especies tropicales
     const co2KgYear = Math.round(totalCount * 21);
     const o2PeopleYear = Math.round(totalCount * 0.5);
     const waterLitersYear = Math.round(totalCount * 250);
@@ -410,7 +459,7 @@ function updateStatsCounter() {
     if (elWater) elWater.textContent = `${waterLitersYear.toLocaleString('es-PA')} L/año`;
     if (elCanopy) elCanopy.textContent = `${canopyM2.toLocaleString('es-PA')} m²`;
 
-    // Actualizar Tabla de Posiciones de Provincias (Idea 4)
+    // Actualizar distribución por provincias
     renderProvinceRanking();
 }
 
@@ -440,7 +489,7 @@ function requestGPSLocation() {
             document.getElementById('input-accuracy').value = accuracy ? Math.round(accuracy) : '';
 
             if (statusText) {
-                statusText.textContent = `📍 Ubicación detectada con precisión de ~${Math.round(accuracy || 10)}m`;
+                statusText.textContent = `Ubicación detectada con precisión de ~${Math.round(accuracy || 10)}m`;
                 statusText.classList.remove('text-gray-500');
                 statusText.classList.add('text-emerald-700', 'font-medium');
             }
@@ -470,7 +519,12 @@ function requestGPSLocation() {
 // Inicializar Mini Mapa del Formulario
 function initFormMap() {
     const container = document.getElementById('form-map');
-    if (!container || state.formMap) return;
+    if (!container || typeof L === 'undefined') return;
+
+    if (state.formMap) {
+        state.formMap.invalidateSize();
+        return;
+    }
 
     const latInput = document.getElementById('input-lat');
     const lngInput = document.getElementById('input-lng');
@@ -493,12 +547,16 @@ function initFormMap() {
         if (lngInput) lngInput.value = coord.lng.toFixed(6);
         state.currentFormCoords = { lat: coord.lat, lng: coord.lng };
     });
+
+    setTimeout(() => {
+        if (state.formMap) state.formMap.invalidateSize();
+    }, 200);
 }
 
 // Inicializar Mapa Público Principal
 function initPublicMap() {
     const container = document.getElementById('map-container');
-    if (!container) return;
+    if (!container || typeof L === 'undefined') return;
 
     if (state.map) {
         state.map.invalidateSize();
@@ -522,11 +580,15 @@ function initPublicMap() {
     googleRoadmap.addTo(state.map);
 
     L.control.layers({
-        "🗺️ Google Maps (Callejero)": googleRoadmap,
-        "🛰️ Google Maps (Satelital)": googleHybrid
+        "Mapa Callejero": googleRoadmap,
+        "Mapa Satelital": googleHybrid
     }).addTo(state.map);
 
     renderMapMarkers();
+
+    setTimeout(() => {
+        if (state.map) state.map.invalidateSize();
+    }, 200);
 }
 
 function renderMapMarkers() {
@@ -549,18 +611,18 @@ function renderMapMarkers() {
 
     const greenTreeIcon = L.divIcon({
         className: 'custom-tree-pin-green',
-        html: `<div class="w-8 h-8 rounded-full bg-emerald-600 border-2 border-white shadow-lg flex items-center justify-center text-white font-bold text-sm transform hover:scale-110 transition-transform">🌳</div>`,
-        iconSize: [32, 32],
-        iconAnchor: [16, 32],
-        popupAnchor: [0, -32]
+        html: `<div class="w-9 h-9 rounded-full bg-canopy border-2 border-emerald-300 shadow-lg flex items-center justify-center text-white font-bold text-xs transform hover:scale-110 transition-transform">🌱</div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 36],
+        popupAnchor: [0, -36]
     });
 
     const redTreeIcon = L.divIcon({
         className: 'custom-tree-pin-red',
-        html: `<div class="w-8 h-8 rounded-full bg-rose-600 border-2 border-white shadow-lg flex items-center justify-center text-white font-bold text-sm transform hover:scale-110 transition-transform">🥀</div>`,
-        iconSize: [32, 32],
-        iconAnchor: [16, 32],
-        popupAnchor: [0, -32]
+        html: `<div class="w-9 h-9 rounded-full bg-stone-700 border-2 border-stone-300 shadow-lg flex items-center justify-center text-white font-bold text-xs transform hover:scale-110 transition-transform">🍂</div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 36],
+        popupAnchor: [0, -36]
     });
 
     const bounds = [];
@@ -569,21 +631,23 @@ function renderMapMarkers() {
         const isDead = t.status === 'dead' || t.status === 'baja';
         const markerIcon = isDead ? redTreeIcon : greenTreeIcon;
         const badgeHtml = isDead 
-            ? `<span class="inline-block text-xs font-bold px-2 py-0.5 bg-rose-100 text-rose-800 rounded mb-1">${t.code} • Dado de Baja 🥀</span>`
-            : `<span class="inline-block text-xs font-semibold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded mb-1">${t.code}</span>`;
+            ? `<span class="inline-block text-[11px] font-semibold px-2 py-0.5 bg-stone-100 text-stone-800 rounded-md mb-1">${t.code} • Inactivo</span>`
+            : `<span class="inline-block text-[11px] font-semibold px-2 py-0.5 bg-sage-soft text-canopy rounded-md mb-1">${t.code}</span>`;
 
         const popupHtml = `
-            <div class="p-3 text-left">
+            <div class="p-3.5 text-left space-y-2">
                 <img src="${t.primary_photo_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80'}" 
                      onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80';"
-                     class="w-full h-32 object-cover rounded-lg mb-2" alt="${t.species_name}">
-                ${badgeHtml}
-                ${state.isAdminLoggedIn ? '<span class="inline-block text-xs font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded mb-1 ml-1">🔓 Arrastra para mover</span>' : ''}
-                <h4 class="font-bold text-gray-900 text-sm leading-tight">${t.species_name}</h4>
-                <p class="text-xs text-gray-500 mb-1">Sembrado por: <strong>${t.public_name}</strong></p>
-                <p class="text-xs text-gray-400 mb-2">📍 ${t.location_description || t.province}</p>
-                <button onclick="showView('arbol', {code: '${t.code}'})" class="w-full text-center py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-md transition-colors">
-                    Ver Ficha del Árbol 🌳
+                     class="w-full h-32 object-cover rounded-xl" alt="${t.species_name}">
+                <div>
+                    ${badgeHtml}
+                    ${state.isAdminLoggedIn ? '<span class="inline-block text-[10px] font-semibold px-2 py-0.5 bg-ochre-soft text-ochre rounded-md ml-1">Arrastrable</span>' : ''}
+                    <h4 class="font-heading font-bold text-canopy text-base leading-tight">${t.species_name}</h4>
+                    <p class="text-xs text-ink-muted">Sembrado por: <strong class="text-canopy">${t.public_name}</strong></p>
+                    <p class="text-[11px] text-ink-muted mt-0.5">${t.location_description || t.province}</p>
+                </div>
+                <button onclick="showView('arbol', {code: '${t.code}'})" class="w-full text-center py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm">
+                    Ver Ficha del Árbol
                 </button>
             </div>
         `;
@@ -614,7 +678,7 @@ function renderMapMarkers() {
                     }
                 }
 
-                showToast(`📍 Ubicación de ${t.code} (${t.species_name}) actualizada a ${t.latitude}, ${t.longitude}`);
+                showToast(`Ubicación de ${t.code} (${t.species_name}) actualizada a ${t.latitude}, ${t.longitude}`);
             });
         }
 
@@ -638,7 +702,7 @@ function showToast(message) {
     if (!toast) {
         toast = document.createElement('div');
         toast.id = 'toast-notification';
-        toast.className = 'fixed bottom-5 right-5 z-[9999] bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl font-medium text-sm transition-all duration-300 transform translate-y-10 opacity-0';
+        toast.className = 'fixed bottom-5 right-5 z-[9999] bg-canopy text-white px-5 py-3.5 rounded-2xl shadow-2xl font-semibold text-xs transition-all duration-300 transform translate-y-10 opacity-0 border border-white/10 flex items-center gap-2';
         document.body.appendChild(toast);
     }
     toast.textContent = message;
@@ -730,7 +794,7 @@ async function handleFormSubmit(e) {
         const lat = (latEl && parseFloat(latEl.value)) ? parseFloat(latEl.value) : state.currentFormCoords.lat;
         const lng = (lngEl && parseFloat(lngEl.value)) ? parseFloat(lngEl.value) : state.currentFormCoords.lng;
 
-        // Capturar o generar PIN de 4 dígitos (v4.0)
+        // Capturar o generar PIN de 4 dígitos para verificación del sembrador
         const rawPinEl = document.getElementById('input-security-pin');
         const rawPin = rawPinEl ? rawPinEl.value.trim() : '';
         const pin = (rawPin && rawPin.length === 4 && /^\d{4}$/.test(rawPin))
@@ -854,7 +918,7 @@ async function handleFormSubmit(e) {
 
     } catch (err) {
         console.error('Error al procesar el formulario de siembra:', err);
-        alert('❌ Error al enviar el formulario: ' + err.message);
+        alert('Error al enviar el formulario: ' + err.message);
     }
 }
 
@@ -906,7 +970,7 @@ async function syncOfflineTrees() {
     
     if (count > 0) {
         saveTreesToStorage();
-        showToast(`📶 ¡Se enviaron automáticamente ${count} árbol(es) registrados sin internet!`);
+        showToast(`Se sincronizaron automáticamente ${count} árbol(es) registrados sin conexión.`);
     }
 }
 
@@ -915,17 +979,15 @@ function sendWhatsAppConfirmation() {
 
     const cleanPhone = (lastSubmittedTree.phone || '').replace(/\D/g, '');
     const message = encodeURIComponent(
-        `🌱 *¡Hola ${lastSubmittedTree.planter_name}!*\n\n` +
-        `¡Felicidades y muchas gracias por sembrar vida y futuro en Panamá! 🇵🇦🌳\n\n` +
-        `Queremos confirmarte que tu siembra ha sido registrada exitosamente en la plataforma *Forestando Juntos*:\n\n` +
-        `📋 *Código Único:* ${lastSubmittedTree.code}\n` +
-        `🔑 *PIN de Seguridad:* ${lastSubmittedTree.pin || 'N/A'}\n` +
-        `🌳 *Especie:* ${lastSubmittedTree.species_name}\n` +
-        `📍 *Provincia:* ${lastSubmittedTree.province}\n` +
-        `📅 *Fecha de Siembra:* ${lastSubmittedTree.planting_date}\n\n` +
-        `Una vez validada por el equipo, podrás ver tu árbol marcado en el mapa interactivo.\n\n` +
-        `*¡Gracias por dejar tu huella verde!* 💚\n` +
-        `_De mano en mano, reforestando Panamá._`
+        `*Hola ${lastSubmittedTree.planter_name}*\n\n` +
+        `Confirmamos que tu siembra ha sido registrada en la plataforma *Forestando Juntos*:\n\n` +
+        `• Código: ${lastSubmittedTree.code}\n` +
+        `• PIN de verificación: ${lastSubmittedTree.pin || 'N/A'}\n` +
+        `• Especie: ${lastSubmittedTree.species_name}\n` +
+        `• Provincia: ${lastSubmittedTree.province}\n` +
+        `• Fecha: ${lastSubmittedTree.planting_date}\n\n` +
+        `Una vez validada por el equipo, estará visible en el mapa interactivo.\n\n` +
+        `Forestando Juntos Panamá`
     );
 
     const waUrl = cleanPhone 
@@ -946,15 +1008,15 @@ function sendAdminNotificationWhatsApp() {
         : '';
 
     const message = encodeURIComponent(
-        `🚨 *¡NUEVO ÁRBOL REGISTRADO (PENDIENTE)!* 🌳\n\n` +
-        `📋 *Código:* ${lastSubmittedTree.code}\n` +
-        `👤 *Sembrador:* ${lastSubmittedTree.planter_name}\n` +
-        `📞 *Teléfono:* ${lastSubmittedTree.phone || 'No especificado'}\n` +
-        `🌳 *Especie:* ${lastSubmittedTree.species_name}\n` +
-        `📍 *Provincia:* ${lastSubmittedTree.province}\n` +
-        `📍 *Coordenadas:* ${lastSubmittedTree.latitude}, ${lastSubmittedTree.longitude}\n` +
-        `📅 *Fecha:* ${lastSubmittedTree.planting_date}\n\n` +
-        `👉 *Entra al panel admin para revisar y aprobar:* \n` +
+        `*Nuevo árbol registrado (pendiente de aprobación)*\n\n` +
+        `• Código: ${lastSubmittedTree.code}\n` +
+        `• Sembrador: ${lastSubmittedTree.planter_name}\n` +
+        `• Teléfono: ${lastSubmittedTree.phone || 'No especificado'}\n` +
+        `• Especie: ${lastSubmittedTree.species_name}\n` +
+        `• Provincia: ${lastSubmittedTree.province}\n` +
+        `• Coordenadas: ${lastSubmittedTree.latitude}, ${lastSubmittedTree.longitude}\n` +
+        `• Fecha: ${lastSubmittedTree.planting_date}\n\n` +
+        `Revisar en el panel de administración:\n` +
         `${window.location.origin}/#admin`
     );
 
@@ -983,7 +1045,7 @@ async function sendAdminEmailNotification(tree) {
                 'Accept': 'application/json'
             },
             body: JSON.stringify({
-                _subject: `🚨 ¡Nuevo Árbol Registrado (PENDIENTE)! - ${tree.code}`,
+                _subject: `Nuevo Árbol Registrado (Pendiente) - ${tree.code}`,
                 _template: 'table',
                 "Código de Registro": tree.code,
                 "Nombre del Sembrador": tree.planter_name,
@@ -1030,28 +1092,28 @@ function renderTreeProfile(code) {
     const planterBadge = getPlanterBadge(planterTreeCount);
 
     container.innerHTML = `
-        <div class="bg-white rounded-2xl shadow-xl overflow-hidden max-w-4xl mx-auto border border-emerald-100">
-            <div class="relative h-72 sm:h-96 w-full bg-gray-900">
+        <div class="bg-surface rounded-3xl shadow-sm overflow-hidden max-w-4xl mx-auto border border-borderWarm text-left">
+            <div class="relative h-72 sm:h-96 w-full bg-canopy">
                 <img id="tree-profile-main-img" src="${tree.primary_photo_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80'}" 
                      onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80';"
                      class="w-full h-full object-cover opacity-90 transition-all duration-300" alt="${tree.species_name}">
                 <div class="absolute top-4 left-4">
-                    <span class="px-4 py-1.5 bg-emerald-600 text-white font-bold text-sm rounded-full shadow-lg">
+                    <span class="px-4 py-1.5 bg-canopy/90 backdrop-blur-md text-white font-bold text-xs rounded-xl shadow-md border border-white/10 font-mono">
                         ${tree.code}
                     </span>
                 </div>
                 <div class="absolute bottom-4 left-4 right-4 text-white">
-                    <h1 class="text-3xl font-extrabold shadow-sm">${tree.species_name}</h1>
-                    <p class="text-emerald-200 text-sm font-medium">📍 ${tree.province} ${tree.location_description ? '• ' + tree.location_description : ''}</p>
+                    <h1 class="font-heading text-3xl sm:text-4xl font-extrabold shadow-sm">${tree.species_name}</h1>
+                    <p class="text-emerald-700 text-sm font-semibold mt-0.5">${tree.province}${tree.location_description ? ' • ' + tree.location_description : ''}</p>
                 </div>
             </div>
 
             <div class="p-6 sm:p-8 space-y-6">
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 border-b border-gray-100 pb-6">
-                    <div class="bg-emerald-50 p-4 rounded-xl flex flex-col justify-between">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 border-b border-borderWarm pb-6">
+                    <div class="bg-canvas p-4 rounded-2xl border border-borderWarm/80 flex flex-col justify-between">
                         <div>
-                            <p class="text-xs text-emerald-800 font-semibold uppercase">Sembrado por</p>
-                            <p class="text-lg font-bold text-gray-900">${tree.public_name}</p>
+                            <p class="text-[10px] text-ink-muted font-bold uppercase tracking-wider">Sembrado por</p>
+                            <p class="text-base font-bold text-canopy">${tree.public_name}</p>
                         </div>
                         <div class="mt-2">
                             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${planterBadge.badgeClass}" title="${planterBadge.desc}">
@@ -1059,32 +1121,32 @@ function renderTreeProfile(code) {
                             </span>
                         </div>
                     </div>
-                    <div class="bg-emerald-50 p-4 rounded-xl">
-                        <p class="text-xs text-emerald-800 font-semibold uppercase">Fecha de Siembra</p>
-                        <p class="text-lg font-bold text-gray-900">${tree.planting_date}</p>
+                    <div class="bg-canvas p-4 rounded-2xl border border-borderWarm/80">
+                        <p class="text-[10px] text-ink-muted font-bold uppercase tracking-wider">Fecha de Siembra</p>
+                        <p class="text-base font-bold text-canopy">${tree.planting_date}</p>
                     </div>
-                    <div class="bg-emerald-50 p-4 rounded-xl">
-                        <p class="text-xs text-emerald-800 font-semibold uppercase">Estado</p>
-                        <span class="inline-block mt-1 px-3 py-1 bg-emerald-200 text-emerald-900 text-xs font-bold rounded-md">🌱 Registrado & Aprobado</span>
+                    <div class="bg-canvas p-4 rounded-2xl border border-borderWarm/80">
+                        <p class="text-[10px] text-ink-muted font-bold uppercase tracking-wider">Estado en Territorio</p>
+                        <span class="inline-block mt-1 px-3 py-1 bg-sage-soft text-canopy border border-sage/30 text-xs font-bold rounded-lg">Registrado y Activo</span>
                     </div>
                 </div>
 
-                <!-- Línea de Tiempo de Crecimiento / Fotos de Evolución (Idea 3) -->
-                <div class="bg-emerald-50/70 p-5 rounded-2xl border border-emerald-200/80 space-y-4">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-emerald-200/60 pb-3">
+                <!-- Fotos de Seguimiento y Crecimiento -->
+                <div class="bg-canvas/60 p-5 rounded-2xl border border-borderWarm space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-borderWarm pb-3">
                         <div>
-                            <h3 class="text-sm font-extrabold text-emerald-950 flex items-center gap-2 uppercase tracking-wide">
-                                📸 Línea de Tiempo de Crecimiento ("Antes y Después")
+                            <h3 class="font-heading text-sm font-bold text-canopy uppercase tracking-wide">
+                                Fotos de Crecimiento ("Antes y Después")
                             </h3>
-                            <p class="text-xs text-emerald-800">Evolución fotográfica del árbol desde su siembra.</p>
+                            <p class="text-xs text-ink-muted">Registro visual de la evolución del árbol a lo largo del tiempo.</p>
                         </div>
                         ${canDownloadCertificate(tree.code) ? `
-                            <button onclick="openAddPhotoModal('${tree.code}')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-transform hover:scale-105">
-                                ➕ Agregar Foto de Crecimiento
+                            <button onclick="openAddPhotoModal('${tree.code}')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors">
+                                + Agregar Foto de Seguimiento
                             </button>
                         ` : `
-                            <button onclick="openPINModal('${tree.code}')" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-transform hover:scale-105">
-                                🌱 ¿Usted sembró este árbol?
+                            <button onclick="openPINModal('${tree.code}')" class="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors">
+                                ¿Usted sembró este árbol?
                             </button>
                         `}
                     </div>
@@ -1095,14 +1157,14 @@ function renderTreeProfile(code) {
                             created_at: tree.planting_date,
                             notes: 'Siembra inicial'
                         }]).map((p, idx) => `
-                            <div onclick="setProfileActivePhoto('${p.url}')" class="relative group cursor-pointer bg-white p-2 rounded-xl border border-emerald-100 shadow-sm hover:shadow-md transition-all text-center">
-                                <img src="${p.url}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80';" class="w-full h-24 object-cover rounded-lg group-hover:scale-105 transition-transform">
+                            <div onclick="setProfileActivePhoto('${p.url}')" class="relative group cursor-pointer bg-surface p-2 rounded-xl border border-borderWarm shadow-sm hover:border-emerald-500/50 transition-all text-center">
+                                <img src="${p.url}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80';" class="w-full h-24 object-cover rounded-lg group-hover:opacity-95 transition-opacity">
                                 <div class="mt-1.5">
-                                    <span class="inline-block text-[10px] font-extrabold px-1.5 py-0.5 ${idx === 0 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'} rounded-md">
-                                        ${idx === 0 ? '🌱 Siembra Inicial' : `Foto #${idx + 1}`}
+                                    <span class="inline-block text-[10px] font-bold px-2 py-0.5 ${idx === 0 ? 'bg-ochre-soft text-ochre border border-ochre/30' : 'bg-sage-soft text-canopy border border-sage/30'} rounded-md">
+                                        ${idx === 0 ? 'Siembra Inicial' : `Foto #${idx + 1}`}
                                     </span>
-                                    <p class="text-[10px] text-slate-500 font-mono mt-0.5">${p.created_at ? p.created_at.split('T')[0] : ''}</p>
-                                    ${p.notes ? `<p class="text-[9px] text-slate-600 italic truncate max-w-full" title="${p.notes}">${p.notes}</p>` : ''}
+                                    <p class="text-[10px] text-ink-muted font-mono mt-0.5">${p.created_at ? p.created_at.split('T')[0] : ''}</p>
+                                    ${p.notes ? `<p class="text-[9px] text-ink-muted italic truncate max-w-full" title="${p.notes}">${p.notes}</p>` : ''}
                                 </div>
                             </div>
                         `).join('')}
@@ -1111,58 +1173,54 @@ function renderTreeProfile(code) {
 
                 ${tree.notes ? `
                 <div>
-                    <h3 class="text-md font-bold text-gray-900 mb-2">Comentarios de la siembra:</h3>
-                    <p class="text-gray-600 bg-gray-50 p-4 rounded-xl italic">${tree.notes}</p>
+                    <h3 class="text-xs font-bold text-canopy uppercase tracking-wider mb-1">Notas de la siembra:</h3>
+                    <p class="text-ink-muted bg-canvas p-4 rounded-xl text-xs italic border border-borderWarm">${tree.notes}</p>
                 </div>
                 ` : ''}
 
-                <!-- Impacto Ecológico Estimado de este Árbol (Idea 2) -->
-                <div class="bg-gradient-to-br from-slate-900 to-emerald-950 p-5 rounded-2xl border border-emerald-500/30 text-white space-y-3 shadow-md">
+                <!-- Impacto Ecológico Estimado -->
+                <div class="bg-canopy text-white p-5 rounded-2xl border border-white/10 space-y-3 shadow-sm">
                     <div class="flex justify-between items-center">
-                        <h3 class="text-xs sm:text-sm font-extrabold text-emerald-300 flex items-center gap-2 uppercase tracking-wide">
-                            🍃 Beneficio Ecológico Estimado de este Árbol
+                        <h3 class="font-heading text-xs sm:text-sm font-bold text-emerald-300 uppercase tracking-wide">
+                            Impacto Ecológico Estimado
                         </h3>
-                        <span class="text-[10px] text-emerald-400/80 font-mono">Fórmulas ANAM / STRI</span>
+                        <span class="text-[11px] text-white/60">Estimación anual</span>
                     </div>
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs">
-                        <div class="bg-slate-950/70 p-3 rounded-xl border border-emerald-500/20 space-y-1">
-                            <span class="text-amber-300 font-mono font-black text-sm sm:text-base block">~21 kg/año</span>
-                            <span class="text-[10px] font-bold text-slate-200 block">CO₂ Absorbido</span>
-                            <span class="text-[9px] text-emerald-200/90 leading-tight block pt-1 border-t border-emerald-500/20 italic">Limpia humo y contaminación del aire.</span>
+                        <div class="bg-white/5 p-3 rounded-xl border border-white/10 space-y-0.5">
+                            <span class="text-emerald-300 font-heading font-extrabold text-sm sm:text-base block">~21 kg/año</span>
+                            <span class="text-[11px] text-white/80 block">CO₂ Absorbido</span>
                         </div>
-                        <div class="bg-slate-950/70 p-3 rounded-xl border border-emerald-500/20 space-y-1">
-                            <span class="text-emerald-300 font-mono font-black text-sm sm:text-base block">~0.5 pers</span>
-                            <span class="text-[10px] font-bold text-slate-200 block">Oxígeno Anual</span>
-                            <span class="text-[9px] text-emerald-200/90 leading-tight block pt-1 border-t border-emerald-500/20 italic">Fabrica aire limpio para respirar.</span>
+                        <div class="bg-white/5 p-3 rounded-xl border border-white/10 space-y-0.5">
+                            <span class="text-sage font-heading font-extrabold text-sm sm:text-base block">~0.5 pers</span>
+                            <span class="text-[11px] text-white/80 block">Oxígeno Anual</span>
                         </div>
-                        <div class="bg-slate-950/70 p-3 rounded-xl border border-emerald-500/20 space-y-1">
-                            <span class="text-cyan-300 font-mono font-black text-sm sm:text-base block">~250 L/año</span>
-                            <span class="text-[10px] font-bold text-slate-200 block">Agua Filtrada</span>
-                            <span class="text-[9px] text-emerald-200/90 leading-tight block pt-1 border-t border-emerald-500/20 italic">Guarda lluvia en la tierra y ríos.</span>
+                        <div class="bg-white/5 p-3 rounded-xl border border-white/10 space-y-0.5">
+                            <span class="text-cyan-300 font-heading font-extrabold text-sm sm:text-base block">~250 L/año</span>
+                            <span class="text-[11px] text-white/80 block">Agua Filtrada</span>
                         </div>
-                        <div class="bg-slate-950/70 p-3 rounded-xl border border-emerald-500/20 space-y-1">
-                            <span class="text-emerald-200 font-mono font-black text-sm sm:text-base block">~10 m²</span>
-                            <span class="text-[10px] font-bold text-slate-200 block">Sombra / Dosel</span>
-                            <span class="text-[9px] text-emerald-200/90 leading-tight block pt-1 border-t border-emerald-500/20 italic">Da sombra fresca y protege aves.</span>
+                        <div class="bg-white/5 p-3 rounded-xl border border-white/10 space-y-0.5">
+                            <span class="text-amber-200 font-heading font-extrabold text-sm sm:text-base block">~10 m²</span>
+                            <span class="text-[11px] text-white/80 block">Cobertura de Copa</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100">
+                <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-borderWarm">
                     ${canDownloadCertificate(tree.code) ? `
-                        <button onclick="openCertificateModal('${tree.code}')" class="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl text-center shadow-md transition-all flex items-center justify-center gap-2 text-sm transform hover:scale-[1.02]">
-                            📜 Ver y Descargar Mi Certificado
+                        <button onclick="openCertificateModal('${tree.code}')" class="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-center shadow-sm transition-colors text-xs flex items-center justify-center gap-2">
+                            Descargar Certificado de Siembra
                         </button>
                     ` : `
-                        <button onclick="openPINModal('${tree.code}')" class="flex-1 py-3 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-extrabold rounded-xl text-center shadow-sm transition-all flex items-center justify-center gap-2 text-xs">
-                            🌱 ¿Usted sembró este árbol? (Ingresar PIN)
+                        <button onclick="openPINModal('${tree.code}')" class="flex-1 py-3.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold rounded-xl text-center shadow-sm transition-colors text-xs flex items-center justify-center gap-2">
+                            ¿Usted sembró este árbol? Ingrese su PIN
                         </button>
                     `}
-                    <button onclick="navigator.clipboard.writeText(window.location.href); alert('¡Enlace de la ficha copiado al portapapeles!');" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold rounded-xl text-center transition-colors text-sm">
-                        🔗 Compartir Ficha
+                    <button onclick="navigator.clipboard.writeText(window.location.href); showToast('Enlace copiado al portapapeles.');" class="flex-1 py-3.5 bg-canvas hover:bg-stone-200/60 text-ink font-semibold rounded-xl text-center transition-colors text-xs border border-borderWarm">
+                        Compartir Ficha
                     </button>
-                    <button onclick="showView('mapa')" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-center transition-colors text-sm">
-                        🗺️ Ver en Mapa
+                    <button onclick="showView('mapa')" class="flex-1 py-3.5 bg-canopy hover:bg-canopy-light text-white font-semibold rounded-xl text-center transition-colors text-xs">
+                        Ver en Mapa
                     </button>
                 </div>
             </div>
@@ -1170,7 +1228,7 @@ function renderTreeProfile(code) {
     `;
 }
 
-// Sistema de Verificación y Recuperación de PIN de 4 Dígitos (v4.0)
+// Verificación de PIN de Sembrador
 let pendingVerificationCode = null;
 
 function openPINModal(code) {
@@ -1206,7 +1264,7 @@ function submitPINVerification() {
 
     if (!enteredPin || enteredPin.length !== 4) {
         if (errorMsg) {
-            errorMsg.textContent = '⚠️ Ingresa un PIN válido de 4 dígitos.';
+            errorMsg.textContent = 'Por favor ingrese un PIN válido de 4 dígitos.';
             errorMsg.classList.remove('hidden');
         }
         return;
@@ -1232,11 +1290,11 @@ function submitPINVerification() {
 
         const targetCode = tree ? tree.code : pendingVerificationCode;
         closePINModal();
-        showToast('🔓 ¡PIN verificado con éxito! Ahora tienes acceso completo de sembrador para este árbol.');
+        showToast('PIN verificado. Acceso de sembrador habilitado para este árbol.');
         renderTreeProfile(targetCode);
     } else {
         if (errorMsg) {
-            errorMsg.textContent = '❌ PIN incorrecto. Si lo olvidaste, solicita ayuda al Administrador.';
+            errorMsg.textContent = 'PIN incorrecto. Si no lo recuerda, consulte al administrador.';
             errorMsg.classList.remove('hidden');
         }
     }
@@ -1284,13 +1342,13 @@ function openCertificateModal(code) {
     }
 
     if (!tree) {
-        alert('⚠️ No hay árbol seleccionado para generar el certificado.');
+        alert('No hay un árbol seleccionado para generar el certificado.');
         return;
     }
 
-    // Control de Permiso (Opción B): Solo el creador o el Administrador
+    // Control de Permiso: Solo el creador o el Administrador
     if (!canDownloadCertificate(tree.code)) {
-        alert('🔒 El Certificado Digital de Siembra solo está disponible para la persona que registró este árbol o para el administrador.');
+        alert('El Certificado de Siembra solo está disponible para la persona que registró este árbol o para el administrador.');
         return;
     }
 
@@ -1343,10 +1401,10 @@ async function downloadCertificatePNG() {
     const certCard = document.getElementById('certificate-card');
     if (!certCard) return;
 
-    showToast('⏳ Generando tu Certificado Digital en alta resolución...');
+    showToast('Generando certificado en alta resolución...');
     try {
         if (typeof html2canvas === 'undefined') {
-            alert('⚠️ El generador de imágenes se está cargando. Por favor intenta de nuevo en 2 segundos.');
+            alert('El generador de imágenes se está cargando. Por favor intente en unos segundos.');
             return;
         }
 
@@ -1364,20 +1422,20 @@ async function downloadCertificatePNG() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        showToast('✅ ¡Certificado descargado con éxito!');
+        showToast('Certificado descargado con éxito.');
     } catch (err) {
         console.error('Error al generar imagen de certificado:', err);
-        showToast('⚠️ Ocurrió un inconveniente al generar la imagen. Puedes tomarle una captura de pantalla.');
+        showToast('Ocurrió un inconveniente al generar la imagen. Puede guardar una captura de pantalla.');
     }
 }
 
 function shareCertificateLink() {
     const treeUrl = `${window.location.origin}${window.location.pathname}#arbol?code=${encodeURIComponent(currentCertCode)}`;
-    const text = encodeURIComponent(`🌱 ¡Mira mi Certificado Oficial de Siembra en Forestando Juntos Panamá! 🇵🇦\nÁrbol ${currentCertCode}\n👉 ${treeUrl}`);
+    const text = encodeURIComponent(`Certificado de Siembra - Forestando Juntos\nÁrbol ${currentCertCode}\n${treeUrl}`);
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
 }
 
-// Funciones para Fotos de Seguimiento y Evolución del Árbol (Idea 3)
+// Fotos de seguimiento y desarrollo del árbol
 let selectedFollowUpPhotoDataUrl = '';
 
 function setProfileActivePhoto(url) {
@@ -1476,7 +1534,7 @@ async function handleFollowUpPhotoSubmit(e) {
     }
 
     closeAddPhotoModal();
-    showToast('🌱 ¡Foto de crecimiento agregada con éxito!');
+    showToast('Foto de seguimiento agregada con éxito.');
     renderTreeProfile(code);
 }
 
@@ -1523,7 +1581,7 @@ function renderAdminDashboard() {
             const isRejected = s === 'rejected' || s === 'rechazado';
 
             const badgeClass = isApproved ? 'badge-approved' : isDead ? 'badge-dead' : isRejected ? 'badge-rejected' : 'badge-pending';
-            const statusLabel = isApproved ? 'Aprobado 🌿' : isDead ? 'Dado de Baja 🥀' : isRejected ? 'Rechazado' : 'Pendiente ⏳';
+            const statusLabel = isApproved ? 'Aprobado' : isDead ? 'Dado de Baja' : isRejected ? 'Rechazado' : 'Pendiente';
 
             const planterTreeCount = state.trees.filter(item => (item.public_name && item.public_name === (t.public_name || t.planter_name)) || (item.planter_name && item.planter_name === (t.planter_name || t.public_name))).length;
             const planterBadge = getPlanterBadge(planterTreeCount);
@@ -1532,53 +1590,53 @@ function renderAdminDashboard() {
                 <td class="py-3 px-4">
                     <img src="${t.primary_photo_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80'}" 
                          onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80';"
-                         class="w-10 h-10 object-cover rounded-lg border border-slate-200 shadow-sm cursor-pointer hover:scale-105 transition-transform"
+                         class="w-10 h-10 object-cover rounded-xl border border-borderWarm shadow-sm cursor-pointer hover:scale-105 transition-transform"
                          onclick="showView('arbol', {code: '${t.code}'})" title="Ver Ficha y Foto Completa">
                 </td>
-                <td class="py-3 px-4 font-mono font-bold text-gray-800">
+                <td class="py-3 px-4 font-mono font-bold text-canopy">
                     ${t.code}
                     <br>
-                    <span class="inline-block mt-1 px-1.5 py-0.5 bg-amber-100 text-amber-900 text-[10px] rounded font-bold border border-amber-200" title="PIN de Seguridad de 4 dígitos para recuperación">🔑 PIN: ${t.pin || t.security_pin || '----'}</span>
+                    <span class="inline-block mt-1 px-2 py-0.5 bg-canvas text-canopy text-[10px] rounded-md font-bold border border-borderWarm" title="PIN de Verificación">PIN: ${t.pin || t.security_pin || '----'}</span>
                 </td>
-                <td class="py-3 px-4 font-semibold text-gray-900">${t.species_name}</td>
+                <td class="py-3 px-4 font-semibold text-canopy">${t.species_name}</td>
                 <td class="py-3 px-4">
-                    <div class="font-bold text-gray-900">${t.planter_name}</div>
-                    <div class="text-xs text-emerald-800 font-mono">${t.email || ''} ${t.identity_card ? '• ' + t.identity_card : ''}</div>
-                    <span class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold border ${planterBadge.badgeClass}">
+                    <div class="font-bold text-canopy">${t.planter_name}</div>
+                    <div class="text-xs text-emerald-700 font-mono">${t.email || ''} ${t.identity_card ? '• ' + t.identity_card : ''}</div>
+                    <span class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-semibold border ${planterBadge.badgeClass}">
                         ${planterBadge.title} (${planterTreeCount})
                     </span>
                 </td>
             <td class="py-3 px-4">${t.province}</td>
-            <td class="py-3 px-4">${t.planting_date}</td>
+            <td class="py-3 px-4 font-mono text-[11px]">${t.planting_date}</td>
             <td class="py-3 px-4">
                 <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${badgeClass}">
                     ${statusLabel}
                 </span>
             </td>
             <td class="py-3 px-4 text-right space-x-1 whitespace-nowrap">
-                <button onclick="openCertificateModal('${t.code}')" class="px-2 py-1 bg-amber-500 text-white text-xs font-semibold rounded hover:bg-amber-600 shadow-sm" title="Generar e imprimir certificado oficial">
-                    📜 Certificado
+                <button onclick="openCertificateModal('${t.code}')" class="px-2.5 py-1 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 shadow-sm transition-colors" title="Generar certificado">
+                    Certificado
                 </button>
-                <button onclick="focusTreeOnMap('${t.code}')" class="px-2 py-1 bg-amber-50 border border-amber-300 text-amber-800 hover:bg-amber-100 text-xs font-semibold rounded transition-colors" title="Ajustar posición en el mapa">
-                    📍 Reubicar
+                <button onclick="focusTreeOnMap('${t.code}')" class="px-2.5 py-1 bg-canvas border border-borderWarm text-canopy hover:bg-stone-100 text-xs font-semibold rounded-lg transition-colors" title="Ajustar posición en el mapa">
+                    Reubicar
                 </button>
                 ${!isApproved ? `
-                    <button onclick="updateTreeStatus('${t.id}', 'approved')" class="px-2 py-1 bg-emerald-600 text-white text-xs font-semibold rounded hover:bg-emerald-700 shadow-sm" title="Aprobar árbol (pin verde en mapa)">
-                        🌿 Aprobar
+                    <button onclick="updateTreeStatus('${t.id}', 'approved')" class="px-2.5 py-1 bg-canopy text-white text-xs font-semibold rounded-lg hover:bg-canopy-light shadow-sm transition-colors" title="Aprobar árbol">
+                        Aprobar
                     </button>
                 ` : ''}
                 ${(!isDead && !isRejected) ? `
-                    <button onclick="updateTreeStatus('${t.id}', 'dead')" class="px-2 py-1 bg-rose-600 text-white text-xs font-semibold rounded hover:bg-rose-700" title="Dar de baja árbol no sobreviviente (pin rojo en mapa)">
-                        🥀 Baja
+                    <button onclick="updateTreeStatus('${t.id}', 'dead')" class="px-2.5 py-1 bg-stone-700 text-white text-xs font-semibold rounded-lg hover:bg-stone-800 transition-colors" title="Dar de baja árbol no sobreviviente">
+                        Dar de Baja
                     </button>
                 ` : ''}
                 ${!isRejected ? `
-                    <button onclick="updateTreeStatus('${t.id}', 'rejected')" class="px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded hover:bg-red-200" title="Rechazar siembra">
+                    <button onclick="updateTreeStatus('${t.id}', 'rejected')" class="px-2.5 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-lg hover:bg-red-200 transition-colors" title="Rechazar siembra">
                         Rechazar
                     </button>
                 ` : `
-                    <button onclick="deleteTree('${t.id}')" class="px-2 py-1 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700 shadow-sm" title="Eliminar registro permanentemente">
-                        🗑️ Eliminar
+                    <button onclick="deleteTree('${t.id}')" class="px-2.5 py-1 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 shadow-sm transition-colors" title="Eliminar registro permanentemente">
+                        Eliminar
                     </button>
                 `}
             </td>
@@ -1615,7 +1673,7 @@ function focusTreeOnMap(code) {
                 targetMarker.openPopup();
             }
         }
-        showToast(`🔓 Modo Edición Activo: Arrastra el marcador de ${tree.code} para reubicarlo.`);
+        showToast(`Modo edición activo: Arrastra el marcador de ${tree.code} para reubicarlo.`);
     }, 350);
 }
 
@@ -1637,11 +1695,11 @@ function handleAdminLogin(e) {
         sessionStorage.setItem('fj_admin_logged', 'true');
         renderAdminDashboard();
         if (state.map) renderMapMarkers();
-        showToast('🔓 Sesión de Administrador iniciada. Modo edición de mapa activado.');
+        showToast('Sesión de Administrador iniciada.');
         document.getElementById('admin-email').value = '';
         document.getElementById('admin-password').value = '';
     } else {
-        alert('❌ Correo electrónico o contraseña de administrador incorrectos.');
+        alert('Correo electrónico o contraseña de administrador incorrectos.');
     }
 }
 
@@ -1650,14 +1708,14 @@ function logoutAdmin() {
     sessionStorage.setItem('fj_admin_logged', 'false');
     renderAdminDashboard();
     if (state.map) renderMapMarkers();
-    showToast('🔒 Sesión de Administrador cerrada.');
+    showToast('Sesión de Administrador cerrada.');
 }
 
 async function updateTreeStatus(treeId, newStatus) {
     const tree = state.trees.find(t => t.id === treeId || t.code === treeId);
     if (!tree) return;
 
-    // Actualizar estado en la nube de Supabase Cloud primero (Fuente Única de Verdad)
+    // Actualizar estado en Supabase Cloud
     const sb = getSupabaseClient();
     if (sb && navigator.onLine) {
         try {
@@ -1672,12 +1730,12 @@ async function updateTreeStatus(treeId, newStatus) {
             const { data, error } = await query.select();
             if (error) {
                 console.error('[Supabase] Error al actualizar estado:', error);
-                showToast(`⚠️ No se pudo actualizar en la nube: ${error.message || 'Error de base de datos'}`);
+                showToast(`No se pudo actualizar en la base de datos: ${error.message || 'Error'}`);
                 return;
             }
         } catch (err) {
             console.error('[Supabase] Excepción en llamada a Supabase:', err);
-            showToast('⚠️ Error de conexión con Supabase Cloud.');
+            showToast('Error de conexión con el servidor.');
             return;
         }
     }
@@ -1689,10 +1747,10 @@ async function updateTreeStatus(treeId, newStatus) {
     if (state.map) renderMapMarkers();
 
     const statusMsg = (newStatus === 'dead' || newStatus === 'baja')
-        ? '🥀 Árbol dado de baja (marcador rojo activo en el mapa).' 
+        ? 'Árbol dado de baja.' 
         : newStatus === 'approved' 
-        ? '🌿 Árbol activo (marcador verde en el mapa).' 
-        : '❌ Árbol rechazado.';
+        ? 'Árbol aprobado.' 
+        : 'Árbol rechazado.';
     showToast(`Estado de ${tree.code || tree.id} actualizado: ${statusMsg}`);
 }
 
@@ -1700,7 +1758,7 @@ async function deleteTree(treeId) {
     const tree = state.trees.find(t => t.id === treeId || t.code === treeId);
     if (!tree) return;
 
-    if (!confirm(`⚠️ ¿Estás seguro de que deseas eliminar permanentemente la siembra ${tree.code || tree.planter_name}? Esta acción no se puede deshacer.`)) {
+    if (!confirm(`¿Está seguro de que desea eliminar permanentemente la siembra ${tree.code || tree.planter_name}? Esta acción no se puede deshacer.`)) {
         return;
     }
 
@@ -1722,12 +1780,12 @@ async function deleteTree(treeId) {
             const { error } = await query;
             if (error) {
                 console.error('[Supabase] Error al eliminar siembra:', error);
-                showToast(`⚠️ No se pudo eliminar de la nube: ${error.message || 'Error de base de datos'}`);
+                showToast(`No se pudo eliminar de la base de datos: ${error.message || 'Error'}`);
                 return;
             }
         } catch (err) {
             console.error('[Supabase] Excepción al eliminar siembra:', err);
-            showToast('⚠️ Error de conexión con Supabase Cloud.');
+            showToast('Error de conexión con el servidor.');
             return;
         }
     }
@@ -1739,7 +1797,7 @@ async function deleteTree(treeId) {
     updateStatsCounter();
     if (state.map) renderMapMarkers();
 
-    showToast(`🗑️ Registro ${tree.code || ''} eliminado permanentemente.`);
+    showToast(`Registro ${tree.code || ''} eliminado permanentemente.`);
 }
 
 // Exportar Registros a CSV
@@ -1835,7 +1893,7 @@ function setupEventListeners() {
         });
     }
 
-    // Limpieza activa del DOM para remover cualquier widget flotante de Netlify
+    // Remover cualquier widget de Netlify si existe
     const purgeNetlifyBadge = () => {
         document.querySelectorAll('a[href*="netlify"], iframe[src*="netlify"], [class*="netlify"], [id*="netlify"], [data-netlify]').forEach(el => {
             if (el.tagName !== 'LINK' && el.tagName !== 'SCRIPT') {
@@ -1847,7 +1905,6 @@ function setupEventListeners() {
         });
     };
     purgeNetlifyBadge();
-    setInterval(purgeNetlifyBadge, 1000);
 }
 
 // Registro Directo de Siembra desde el Panel de Administración
@@ -1856,24 +1913,27 @@ function openAdminAddModal() {
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'modal-admin-add';
-        modal.className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+        modal.className = 'fixed inset-0 bg-canopy/60 backdrop-blur-sm z-50 flex items-center justify-center p-4';
         modal.innerHTML = `
-            <div class="bg-white rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl relative">
-                <button type="button" onclick="document.getElementById('modal-admin-add').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
-                <h3 class="text-xl font-extrabold text-slate-900">🌱 Agregar Siembra Directa (Admin)</h3>
-                <form onsubmit="handleAdminAddSubmit(event)" class="space-y-3 text-left">
+            <div class="bg-surface rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-4 shadow-2xl relative border border-borderWarm text-left">
+                <button type="button" onclick="document.getElementById('modal-admin-add').classList.add('hidden')" class="absolute top-4 right-4 text-ink-muted hover:text-canopy font-bold text-lg">✕</button>
+                <div class="space-y-0.5">
+                    <span class="text-xs font-bold uppercase tracking-wider text-emerald-700">Gestión de Campo</span>
+                    <h3 class="font-heading text-xl font-bold text-canopy">Agregar Siembra Directa</h3>
+                </div>
+                <form onsubmit="handleAdminAddSubmit(event)" class="space-y-3">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Nombre del Sembrador *</label>
-                        <input type="text" id="admin-add-planter" required placeholder="Ej. Juan Pérez" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium">
+                        <label class="block text-xs font-bold text-ink-muted mb-1">Nombre del Sembrador *</label>
+                        <input type="text" id="admin-add-planter" required placeholder="Ej. Juan Pérez" class="w-full p-3 bg-canvas border border-borderWarm rounded-xl text-sm focus:outline-none focus:border-emerald-500">
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">Especie *</label>
-                            <input type="text" id="admin-add-species" required placeholder="Ej. Guayacán Morado" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium">
+                            <label class="block text-xs font-bold text-ink-muted mb-1">Especie *</label>
+                            <input type="text" id="admin-add-species" required placeholder="Ej. Guayacán Morado" class="w-full p-3 bg-canvas border border-borderWarm rounded-xl text-sm focus:outline-none focus:border-emerald-500">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">Provincia *</label>
-                            <select id="admin-add-province" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium">
+                            <label class="block text-xs font-bold text-ink-muted mb-1">Provincia *</label>
+                            <select id="admin-add-province" class="w-full p-3 bg-canvas border border-borderWarm rounded-xl text-sm focus:outline-none focus:border-emerald-500">
                                 <option value="Veraguas">Veraguas</option>
                                 <option value="Panamá">Panamá</option>
                                 <option value="Chiriquí">Chiriquí</option>
@@ -1889,23 +1949,23 @@ function openAdminAddModal() {
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">Fecha de Siembra</label>
-                            <input type="date" id="admin-add-date" value="${new Date().toISOString().split('T')[0]}" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium">
+                            <label class="block text-xs font-bold text-ink-muted mb-1">Fecha de Siembra</label>
+                            <input type="date" id="admin-add-date" value="${new Date().toISOString().split('T')[0]}" class="w-full p-3 bg-canvas border border-borderWarm rounded-xl text-sm focus:outline-none focus:border-emerald-500">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">Estado Inicial</label>
-                            <select id="admin-add-status" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium">
-                                <option value="pending">⏳ Pendiente</option>
-                                <option value="approved" selected>🌿 Aprobado</option>
+                            <label class="block text-xs font-bold text-ink-muted mb-1">Estado Inicial</label>
+                            <select id="admin-add-status" class="w-full p-3 bg-canvas border border-borderWarm rounded-xl text-sm focus:outline-none focus:border-emerald-500">
+                                <option value="pending">Pendiente</option>
+                                <option value="approved" selected>Aprobado</option>
                             </select>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Ubicación / Detalles</label>
-                        <input type="text" id="admin-add-location" placeholder="Ej. Finca La Esperanza, Santiago" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium">
+                        <label class="block text-xs font-bold text-ink-muted mb-1">Ubicación / Detalles</label>
+                        <input type="text" id="admin-add-location" placeholder="Ej. Finca La Esperanza, Santiago" class="w-full p-3 bg-canvas border border-borderWarm rounded-xl text-sm focus:outline-none focus:border-emerald-500">
                     </div>
-                    <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition-colors text-sm">
-                        ✅ Guardar Registro de Siembra
+                    <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-sm transition-colors text-xs mt-2">
+                        Guardar Registro de Siembra
                     </button>
                 </form>
             </div>
@@ -1953,5 +2013,5 @@ function handleAdminAddSubmit(e) {
     if (state.map) renderMapMarkers();
 
     document.getElementById('modal-admin-add').classList.add('hidden');
-    showToast(`🌱 Registrada exitosamente la siembra ${treeCode} para ${planter}`);
+    showToast(`Siembra ${treeCode} registrada con éxito para ${planter}.`);
 }

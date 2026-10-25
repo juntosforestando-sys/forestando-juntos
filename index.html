@@ -1,26 +1,53 @@
 <!DOCTYPE html>
-<html lang="es" class="h-full">
+<html lang="es" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forestando Juntos — Registra y Mapea tus Árboles Sembrados</title>
+    <title>Forestando Juntos | Plataforma de Reforestación Ciudadana en Panamá</title>
     
-    <!-- Tailwind CSS (CDN v3) -->
+    <!-- Meta SEO & Social Sharing -->
+    <meta name="description" content="Plataforma ciudadana para el registro, geolocalización satelital y seguimiento del crecimiento de árboles en Panamá. Genera tu certificado oficial de siembra.">
+    <meta name="theme-color" content="#132B22">
+    <meta property="og:title" content="Forestando Juntos - Reforestación Comunitaria en Panamá">
+    <meta property="og:description" content="Registra tu árbol sembrado, geolocalízalo con GPS y comparte tu impacto ecológico.">
+    <meta property="og:type" content="website">
+
+    <!-- Google Fonts: Outfit & Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        emerald: {
-                            50: '#ecfdf5',
-                            100: '#d1fae5',
-                            500: '#10b981',
-                            600: '#059669',
-                            700: '#047857',
-                            800: '#065f46',
-                            900: '#064e3b',
+                        canopy: {
+                            DEFAULT: '#132B22',
+                            light: '#1B3B30',
+                            dark: '#0C1C16'
+                        },
+                        ochre: {
+                            DEFAULT: '#D99B38',
+                            soft: '#FEF7EA'
+                        },
+                        sage: {
+                            DEFAULT: '#4E7C67',
+                            soft: '#EBF3EF'
+                        },
+                        canvas: '#F8F6F0',
+                        surface: '#FFFFFF',
+                        borderWarm: '#E8E3D7',
+                        ink: {
+                            DEFAULT: '#192420',
+                            muted: '#606C66'
                         }
+                    },
+                    fontFamily: {
+                        heading: ['Outfit', 'sans-serif'],
+                        body: ['Plus Jakarta Sans', 'sans-serif']
                     }
                 }
             }
@@ -31,611 +58,558 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- Leaflet MarkerCluster -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
-    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-
-    <!-- html2canvas para generación de Certificados en PNG -->
+    <!-- HTML2Canvas para Certificados -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-    <!-- Estilos de la Aplicación -->
-    <link rel="stylesheet" href="css/styles.css?v=3.5">
+    <!-- Supabase JS Client Oficial -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="css/styles.css">
 </head>
-<body class="h-full flex flex-col bg-slate-50 text-slate-800 antialiased">
+<body class="bg-canvas text-ink font-body antialiased flex flex-col min-h-screen">
 
-    <!-- NAVBAR HEADER -->
-    <header class="bg-white/95 backdrop-blur border-b border-emerald-100 sticky top-0 z-50 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                
-                <!-- Logo -->
-                <a href="#home" onclick="showView('home')" class="flex items-center gap-3 group">
-                    <img src="img/logo.jpg" alt="Logo Forestando Juntos" class="w-11 h-11 rounded-xl object-cover shadow-sm group-hover:scale-105 transition-transform border border-emerald-100">
-                    <div>
-                        <div class="flex items-center gap-1">
-                            <span class="font-extrabold text-xl text-emerald-900 tracking-tight">Forestando</span>
-                            <span class="font-light text-xl text-emerald-600">Juntos</span>
-                        </div>
-                        <p class="text-[10px] font-semibold text-emerald-700 tracking-wider uppercase -mt-1">De mano en mano, reforestando Panamá</p>
-                    </div>
-                </a>
-
-                <!-- Nav Links Desktop -->
-                <nav class="hidden md:flex items-center gap-1 font-medium text-sm text-slate-600">
-                    <button onclick="showView('home')" class="px-3 py-2 rounded-lg hover:text-emerald-700 hover:bg-emerald-50 transition-colors">Inicio</button>
-                    <button onclick="showView('mapa')" class="px-3 py-2 rounded-lg hover:text-emerald-700 hover:bg-emerald-50 transition-colors">Mapa Público</button>
-                    <button onclick="showView('registrar')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-sm transition-all ml-2">
-                        + Registrar Árbol
-                    </button>
-                </nav>
-
-                <!-- Mobile Menu Button -->
-                <div class="md:hidden flex items-center gap-2">
-                    <button onclick="showView('registrar')" class="px-3 py-1.5 bg-emerald-600 text-white font-semibold text-xs rounded-lg">
-                        + Registrar
-                    </button>
-                    <button onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="p-2 text-slate-600 hover:text-emerald-700">
-                        ☰
-                    </button>
+    <!-- Barra de Navegación Flotante -->
+    <header class="sticky top-3 z-40 px-3 sm:px-6 w-full max-w-6xl mx-auto">
+        <nav class="bg-surface/90 backdrop-blur-md border border-borderWarm shadow-[0_8px_30px_rgb(19,43,34,0.06)] rounded-2xl px-4 py-2.5 flex items-center justify-between transition-all">
+            <!-- Logo & Marca -->
+            <a href="#home" class="flex items-center gap-3 group">
+                <div class="w-10 h-10 rounded-xl overflow-hidden shadow-sm border border-borderWarm/80 flex-shrink-0 bg-white">
+                    <img src="img/logo.jpg" alt="Logo Forestando Juntos" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
                 </div>
-            </div>
-        </div>
+                <div>
+                    <span class="font-heading font-extrabold text-base sm:text-lg text-canopy tracking-tight leading-none block">
+                        Forestando <span class="text-emerald-600">Juntos</span>
+                    </span>
+                    <span class="text-[10px] text-ink-muted uppercase font-semibold tracking-wider block mt-0.5">Panamá</span>
+                </div>
+            </a>
 
-        <!-- Mobile Menu Dropdown -->
-        <div id="mobile-menu" class="hidden md:hidden bg-white border-b border-emerald-100 px-4 pt-2 pb-4 space-y-2">
-            <button onclick="showView('home'); document.getElementById('mobile-menu').classList.add('hidden')" class="block w-full text-left px-3 py-2 rounded-lg font-medium hover:bg-emerald-50">Inicio</button>
-            <button onclick="showView('mapa'); document.getElementById('mobile-menu').classList.add('hidden')" class="block w-full text-left px-3 py-2 rounded-lg font-medium hover:bg-emerald-50">Mapa Público</button>
-            <button onclick="showView('registrar'); document.getElementById('mobile-menu').classList.add('hidden')" class="block w-full text-left px-3 py-2 bg-emerald-600 text-white font-semibold rounded-lg">Registrar un Árbol</button>
+            <!-- Enlaces de Escritorio -->
+            <div class="hidden md:flex items-center gap-1 text-xs font-semibold text-ink-muted">
+                <button onclick="showView('home')" id="nav-home" class="px-3.5 py-2 rounded-xl transition-colors hover:text-canopy hover:bg-canvas text-canopy font-bold">
+                    Inicio
+                </button>
+                <button onclick="showView('mapa')" id="nav-mapa" class="px-3.5 py-2 rounded-xl transition-colors hover:text-canopy hover:bg-canvas">
+                    Mapa de Árboles
+                </button>
+                <button onclick="showView('estadisticas')" id="nav-estadisticas" class="px-3.5 py-2 rounded-xl transition-colors hover:text-canopy hover:bg-canvas">
+                    Impacto Ecológico
+                </button>
+                <button onclick="showView('admin')" id="nav-admin" class="px-3 py-1.5 rounded-xl border border-borderWarm hover:border-canopy/30 hover:text-canopy transition-colors text-[11px]">
+                    Administración
+                </button>
+            </div>
+
+            <!-- Botón de Registro Principal (Verde Esmeralda Original) -->
+            <div class="flex items-center gap-2">
+                <button onclick="showView('registro')" id="nav-registro" class="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all transform hover:-translate-y-0.5 active:translate-y-0">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                    Registrar Siembra
+                </button>
+
+                <!-- Menú Móvil Hamburger -->
+                <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="md:hidden p-2 rounded-xl text-ink-muted hover:text-canopy hover:bg-canvas focus:outline-none" aria-label="Abrir menú">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Menú Móvil Desplegable -->
+        <div id="mobile-menu" class="hidden md:hidden mt-2 bg-surface border border-borderWarm rounded-2xl p-3 shadow-xl space-y-1 text-sm font-semibold">
+            <button onclick="showView('home'); toggleMobileMenu()" class="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-canvas text-canopy">
+                Inicio
+            </button>
+            <button onclick="showView('mapa'); toggleMobileMenu()" class="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-canvas text-ink-muted">
+                Mapa de Árboles
+            </button>
+            <button onclick="showView('estadisticas'); toggleMobileMenu()" class="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-canvas text-ink-muted">
+                Impacto Ecológico
+            </button>
+            <button onclick="showView('admin'); toggleMobileMenu()" class="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-canvas text-ink-muted">
+                Panel de Administración
+            </button>
+            <button onclick="showView('registro'); toggleMobileMenu()" class="w-full text-center px-4 py-3 bg-emerald-600 text-white rounded-xl font-bold mt-2 shadow-sm">
+                + Registrar Siembra
+            </button>
         </div>
     </header>
 
-    <!-- CONTENIDO PRINCIPAL (VISTAS SPA) -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- Contenido Principal -->
+    <main class="flex-grow max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-10">
 
-        <!-- ==================== VISTA 1: LANDING PAGE ==================== -->
-        <section id="view-home" class="app-view space-y-12">
+        <!-- ========================================== -->
+        <!-- VISTA: INICIO / HOME                      -->
+        <!-- ========================================== -->
+        <section id="view-home" class="app-view space-y-10">
             
-            <!-- Hero Banner -->
-            <div class="relative bg-gradient-to-br from-emerald-800 to-emerald-950 rounded-3xl p-8 sm:p-12 text-white overflow-hidden shadow-xl flex flex-col md:flex-row items-center justify-between gap-8">
-                <div class="relative z-10 max-w-2xl space-y-4">
-                    <span class="inline-block px-3 py-1 bg-emerald-500/30 text-emerald-200 text-xs font-semibold rounded-full border border-emerald-400/20">
-                        🇵🇦 De mano en mano, reforestando Panamá
-                    </span>
-                    <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
-                        Registra, mapea y dale seguimiento a tus árboles sembrados.
-                    </h1>
-                    <p class="text-emerald-100 text-base sm:text-lg">
-                        Transformamos la entrega de plantones en un impacto medible. Registra tu siembra desde tu celular y forma parte del mapa ecológico público de Panamá.
-                    </p>
-                    <div class="pt-4 flex flex-wrap gap-4">
-                        <button onclick="showView('registrar')" class="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5">
-                            🌿 Registrar una Siembra
-                        </button>
-                        <button onclick="showView('mapa')" class="px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl border border-white/20 backdrop-blur transition-all">
-                            🗺️ Explorar el Mapa
-                        </button>
+            <!-- Hero Creativo y Editorial -->
+            <div class="relative overflow-hidden bg-surface rounded-3xl border border-borderWarm p-6 sm:p-10 lg:p-12 shadow-[0_12px_40px_rgb(19,43,34,0.04)]">
+                <!-- Acentos decorativos de fondo orgánico -->
+                <div class="absolute -top-24 -right-24 w-80 h-80 bg-sage-soft rounded-full blur-3xl opacity-60 pointer-events-none"></div>
+                <div class="absolute -bottom-24 -left-24 w-80 h-80 bg-emerald-50 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
+
+                <div class="relative grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+                    <!-- Columna de Texto -->
+                    <div class="lg:col-span-7 space-y-5 text-left">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold">
+                            <span class="w-2 h-2 rounded-full bg-emerald-600 animate-ping"></span>
+                            Iniciativa Ciudadana • Reforestación Viva
+                        </div>
+
+                        <h1 class="font-heading font-extrabold text-3xl sm:text-5xl lg:text-[2.75rem] text-canopy tracking-tight leading-[1.15]">
+                            Sembrando hoy los <span class="text-emerald-600 italic font-normal">bosques</span> del Panamá del mañana.
+                        </h1>
+
+                        <p class="text-ink-muted text-sm sm:text-base leading-relaxed max-w-xl">
+                            Registra tus árboles sembrados con coordenadas GPS exactas, custodia su crecimiento con fotografías a lo largo del tiempo y obtén tu Certificado Digital emitido por la comunidad.
+                        </p>
+
+                        <!-- Botones de Acción Hero -->
+                        <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                            <button onclick="showView('registro')" class="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-md hover:shadow-lg transition-all text-center flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                                Registrar Mi Árbol
+                            </button>
+                            <button onclick="showView('mapa')" class="px-6 py-3.5 bg-canvas hover:bg-surface text-canopy border border-borderWarm hover:border-canopy/40 text-sm font-bold rounded-xl transition-all text-center flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                                Explorar Mapa Satelital
+                            </button>
+                        </div>
+
+                        <!-- Micro-badges de Confianza -->
+                        <div class="pt-3 border-t border-borderWarm/80 flex flex-wrap gap-4 text-xs text-ink-muted">
+                            <div class="flex items-center gap-1.5">
+                                <svg class="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                <span>Coordenadas verificadas</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <svg class="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                <span>Línea de tiempo fotográfica</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <svg class="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                <span>PIN de custodia exclusivo</span>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                
-                <div class="relative z-10 flex-shrink-0">
-                    <img src="img/logo.jpg" alt="Logo Emblemático Forestando Juntos" class="w-44 h-44 sm:w-56 sm:h-56 rounded-3xl object-cover border-4 border-emerald-400/30 shadow-2xl backdrop-blur-md hover:scale-105 transition-transform duration-300">
+
+                    <!-- Columna de Ficha Destacada Interactiva -->
+                    <div class="lg:col-span-5">
+                        <div class="bg-canvas border border-borderWarm p-4 sm:p-5 rounded-2xl shadow-sm space-y-3 relative group">
+                            <div class="relative h-48 sm:h-56 rounded-xl overflow-hidden bg-stone-200">
+                                <img src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80" alt="Árbol reforestado" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                <div class="absolute top-3 left-3 bg-canopy/90 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-lg">
+                                    ARB-2026-000001
+                                </div>
+                                <div class="absolute bottom-3 left-3 right-3 text-white">
+                                    <span class="text-[10px] uppercase font-bold tracking-wider text-ochre">Especie Nativa</span>
+                                    <p class="font-heading text-lg font-bold leading-tight">Guayacán Real</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2 text-xs">
+                                <div class="bg-surface p-2.5 rounded-xl border border-borderWarm/60">
+                                    <span class="text-[10px] text-ink-muted uppercase font-semibold block">Sembrador</span>
+                                    <span class="font-bold text-canopy truncate block">Familia Morales</span>
+                                </div>
+                                <div class="bg-surface p-2.5 rounded-xl border border-borderWarm/60">
+                                    <span class="text-[10px] text-ink-muted uppercase font-semibold block">Provincia</span>
+                                    <span class="font-bold text-canopy block">Veraguas</span>
+                                </div>
+                            </div>
+
+                            <button onclick="showView('mapa')" class="w-full py-2.5 bg-canopy hover:bg-canopy-light text-white text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                                Ver Marcadores en el Mapa Vivo
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Tarjetas de Estadísticas -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-                    <div class="w-14 h-14 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl font-bold">
-                        🌳
+            <!-- Cifras del Ecosistema (4 Métricas Clave) -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                <div class="bg-surface p-5 rounded-2xl border border-borderWarm text-left space-y-1 shadow-sm">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center text-sm font-bold mb-2">
+                        🌱
                     </div>
-                    <div>
-                        <p class="text-3xl font-extrabold text-slate-900" id="stat-total-trees">0</p>
-                        <p class="text-sm font-medium text-slate-500">Árboles Registrados</p>
-                    </div>
+                    <span id="stat-total-trees" class="font-heading font-extrabold text-2xl sm:text-3xl text-canopy block leading-none">0</span>
+                    <span class="text-xs font-semibold text-ink-muted block">Árboles Registrados</span>
                 </div>
 
-                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-                    <div class="w-14 h-14 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl font-bold">
-                        🌸
+                <div class="bg-surface p-5 rounded-2xl border border-borderWarm text-left space-y-1 shadow-sm">
+                    <div class="w-8 h-8 rounded-lg bg-ochre-soft text-ochre flex items-center justify-center text-sm font-bold mb-2">
+                        🌿
                     </div>
-                    <div>
-                        <p class="text-3xl font-extrabold text-slate-900" id="stat-species-count">0</p>
-                        <p class="text-sm font-medium text-slate-500">Especies Distintas</p>
-                    </div>
+                    <span id="stat-species-count" class="font-heading font-extrabold text-2xl sm:text-3xl text-canopy block leading-none">0</span>
+                    <span class="text-xs font-semibold text-ink-muted block">Especies Nativas</span>
                 </div>
 
-                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-                    <div class="w-14 h-14 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl font-bold">
+                <div class="bg-surface p-5 rounded-2xl border border-borderWarm text-left space-y-1 shadow-sm">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center text-sm font-bold mb-2">
                         📍
                     </div>
+                    <span id="stat-provinces-count" class="font-heading font-extrabold text-2xl sm:text-3xl text-canopy block leading-none">0</span>
+                    <span class="text-xs font-semibold text-ink-muted block">Provincias Activas</span>
+                </div>
+
+                <div class="bg-surface p-5 rounded-2xl border border-borderWarm text-left space-y-1 shadow-sm">
+                    <div class="w-8 h-8 rounded-lg bg-sage-soft text-canopy flex items-center justify-center text-sm font-bold mb-2">
+                        🛡️
+                    </div>
+                    <span class="font-heading font-extrabold text-2xl sm:text-3xl text-canopy block leading-none">100%</span>
+                    <span class="text-xs font-semibold text-ink-muted block">Monitoreo con PIN</span>
+                </div>
+            </div>
+
+            <!-- Panel de Impacto Ecológico Estimado (Canopy Card) -->
+            <div id="section-impacto" class="bg-canopy text-white rounded-3xl p-6 sm:p-8 lg:p-10 shadow-lg space-y-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-white/10 pb-4">
                     <div>
-                        <p class="text-3xl font-extrabold text-slate-900" id="stat-provinces-count">0</p>
-                        <p class="text-sm font-medium text-slate-500">Provincias Impactadas</p>
+                        <span class="text-xs text-ochre font-bold uppercase tracking-wider block">Balance Biofísico Estimado</span>
+                        <h2 class="font-heading text-xl sm:text-2xl font-bold">El Bosque que Respira en Panamá</h2>
+                    </div>
+                    <span class="text-xs text-white/60 font-mono">Estimación referencial anual</span>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-left">
+                    <div class="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-1">
+                        <span id="stat-impact-co2" class="font-heading font-extrabold text-xl sm:text-2xl text-emerald-400 block leading-tight">0 kg/año</span>
+                        <span class="text-xs font-bold text-white/90 block">CO₂ Absorbido</span>
+                        <p class="text-[11px] text-white/60 leading-snug">Captura estimada de carbono en biomasa.</p>
+                    </div>
+
+                    <div class="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-1">
+                        <span id="stat-impact-o2" class="font-heading font-extrabold text-xl sm:text-2xl text-emerald-300 block leading-tight">0 pers/año</span>
+                        <span class="text-xs font-bold text-white/90 block">Oxígeno Generado</span>
+                        <p class="text-[11px] text-white/60 leading-snug">Soporte respiratorio vital equivalente.</p>
+                    </div>
+
+                    <div class="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-1">
+                        <span id="stat-impact-water" class="font-heading font-extrabold text-xl sm:text-2xl text-cyan-300 block leading-tight">0 L/año</span>
+                        <span class="text-xs font-bold text-white/90 block">Agua Filtrada</span>
+                        <p class="text-[11px] text-white/60 leading-snug">Infiltración hacia cuencas y acuíferos.</p>
+                    </div>
+
+                    <div class="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-1">
+                        <span id="stat-impact-canopy" class="font-heading font-extrabold text-xl sm:text-2xl text-emerald-300 block leading-tight">0 m²</span>
+                        <span class="text-xs font-bold text-white/90 block">Cobertura de Copa</span>
+                        <p class="text-[11px] text-white/60 leading-snug">Área de sombra y refugio para fauna.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- CALCULADORA DE IMPACTO ECOLÓGICO EN TIEMPO REAL (Idea 2) -->
-            <div class="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white border border-emerald-500/30 shadow-xl space-y-6">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-emerald-500/20 pb-4">
+            <!-- Distribución por Provincias -->
+            <div id="section-ranking" class="bg-surface rounded-3xl border border-borderWarm p-6 sm:p-8 space-y-5 text-left shadow-sm">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1">
                     <div>
-                        <h3 class="text-xl sm:text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-400 flex items-center gap-2">
-                            🍃 Impacto Ecológico Estimado en Tiempo Real
-                        </h3>
-                        <p class="text-xs sm:text-sm text-emerald-200/80">
-                            Beneficios ambientales acumulados por los árboles sembrados en Panamá.
-                        </p>
-                    </div>
-                    <span class="px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[11px] font-mono font-bold rounded-full uppercase tracking-wider shadow-sm">
-                        📊 Fórmulas ANAM / STRI
-                    </span>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <!-- CO2 Absorbido -->
-                    <div class="bg-slate-950/75 p-5 rounded-2xl border border-emerald-500/30 space-y-2 flex flex-col justify-between">
-                        <div>
-                            <div class="flex items-center gap-2 text-emerald-400 text-xs font-extrabold uppercase tracking-wider">
-                                <span>🍃 CO₂ Absorbido</span>
-                            </div>
-                            <p class="text-2xl sm:text-3xl font-black text-amber-300 font-mono mt-1" id="stat-impact-co2">0 kg/año</p>
-                        </div>
-                        <p class="text-[11px] text-emerald-100/90 leading-snug border-t border-emerald-500/20 pt-2 italic">
-                            💡 <strong>¿Qué hace?</strong> Limpia el aire atrapando el humo y la contaminación que producen autos y fábricas.
-                        </p>
-                    </div>
-
-                    <!-- Oxígeno Generado -->
-                    <div class="bg-slate-950/75 p-5 rounded-2xl border border-emerald-500/30 space-y-2 flex flex-col justify-between">
-                        <div>
-                            <div class="flex items-center gap-2 text-emerald-400 text-xs font-extrabold uppercase tracking-wider">
-                                <span>🫁 Aire Puro (Oxígeno)</span>
-                            </div>
-                            <p class="text-2xl sm:text-3xl font-black text-emerald-300 font-mono mt-1" id="stat-impact-o2">0 pers/año</p>
-                        </div>
-                        <p class="text-[11px] text-emerald-100/90 leading-snug border-t border-emerald-500/20 pt-2 italic">
-                            💡 <strong>¿Qué hace?</strong> Fabrica el oxígeno fresco y limpio que respiran las personas cada día.
-                        </p>
-                    </div>
-
-                    <!-- Agua Retenida -->
-                    <div class="bg-slate-950/75 p-5 rounded-2xl border border-emerald-500/30 space-y-2 flex flex-col justify-between">
-                        <div>
-                            <div class="flex items-center gap-2 text-emerald-400 text-xs font-extrabold uppercase tracking-wider">
-                                <span>💧 Agua Filtrada</span>
-                            </div>
-                            <p class="text-2xl sm:text-3xl font-black text-cyan-300 font-mono mt-1" id="stat-impact-water">0 L/año</p>
-                        </div>
-                        <p class="text-[11px] text-emerald-100/90 leading-snug border-t border-emerald-500/20 pt-2 italic">
-                            💡 <strong>¿Qué hace?</strong> Atrapa la lluvia en la tierra para alimentar ríos y mantener el suelo húmedo.
-                        </p>
-                    </div>
-
-                    <!-- Cobertura de Dosel -->
-                    <div class="bg-slate-950/75 p-5 rounded-2xl border border-emerald-500/30 space-y-2 flex flex-col justify-between">
-                        <div>
-                            <div class="flex items-center gap-2 text-emerald-400 text-xs font-extrabold uppercase tracking-wider">
-                                <span>🌳 Sombra & Cobertura</span>
-                            </div>
-                            <p class="text-2xl sm:text-3xl font-black text-emerald-200 font-mono mt-1" id="stat-impact-canopy">0 m²</p>
-                        </div>
-                        <p class="text-[11px] text-emerald-100/90 leading-snug border-t border-emerald-500/20 pt-2 italic">
-                            💡 <strong>¿Qué hace?</strong> Da sombra fresca, refugio a la fauna silvestre y refresca el clima local.
-                        </p>
+                        <h2 class="font-heading text-lg sm:text-xl font-bold text-canopy">Siembras por Región</h2>
+                        <p class="text-xs text-ink-muted">Distribución de registros por provincias del país.</p>
                     </div>
                 </div>
-            </div>
 
-            <!-- RANKING DE PROVINCIAS REFORESTADORAS (Idea 4) -->
-            <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-4">
-                    <div>
-                        <h3 class="text-xl sm:text-2xl font-extrabold text-slate-900 flex items-center gap-2">
-                            🏆 Tabla de Posiciones Reforestadoras de Panamá
-                        </h3>
-                        <p class="text-xs sm:text-sm text-slate-500">
-                            Provincias con más árboles sembrados y registrados en la plataforma.
-                        </p>
-                    </div>
-                    <button onclick="showView('mapa')" class="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-xl text-xs transition-colors flex items-center gap-1.5 border border-emerald-200">
-                        🗺️ Ver Mapa por Provincias
-                    </button>
-                </div>
-
-                <div id="province-ranking-container" class="space-y-3">
-                    <!-- Renderizado dinámicamente desde js/app.js -->
-                </div>
-            </div>
-
-            <!-- Pasos del Flujo -->
-            <div class="space-y-6">
-                <h2 class="text-2xl font-bold text-slate-900 text-center">¿Cómo funciona?</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm text-center space-y-3">
-                        <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold">1</div>
-                        <h3 class="font-bold text-slate-900">Siembra tu Plantón</h3>
-                        <p class="text-sm text-slate-500">Recibe tu árbol y siémbralo en tu finca, jardín, escuela o comunidad.</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm text-center space-y-3">
-                        <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold">2</div>
-                        <h3 class="font-bold text-slate-900">Registra con tu Móvil</h3>
-                        <p class="text-sm text-slate-500">Captura la ubicación GPS con un botón y sube 1 a 3 fotos de evidencia.</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm text-center space-y-3">
-                        <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold">3</div>
-                        <h3 class="font-bold text-slate-900">Aparece en el Mapa</h3>
-                        <p class="text-sm text-slate-500">Al ser validado, tu árbol tendrá un punto en el mapa interactivo y su propia ficha pública.</p>
-                    </div>
+                <div id="province-ranking-container" class="space-y-2.5">
+                    <p class="text-xs text-ink-muted italic text-center py-6">Cargando distribución de siembras...</p>
                 </div>
             </div>
         </section>
 
-        <!-- ==================== VISTA 2: FORMULARIO DE REGISTRO ==================== -->
-        <section id="view-registrar" class="app-view hidden max-w-2xl mx-auto">
-            <div class="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 sm:p-10 space-y-6">
-                <div>
-                    <h2 class="text-2xl font-extrabold text-slate-900">Registrar una Siembra 🌱</h2>
-                    <p class="text-sm text-slate-500">Completa la información de tu árbol sembrado. Se generará un código único para darle seguimiento.</p>
+        <!-- ========================================== -->
+        <!-- VISTA: MAPA DE ÁRBOLES                    -->
+        <!-- ========================================== -->
+        <section id="view-mapa" class="app-view hidden space-y-4">
+            <!-- Barra flotante de filtros del mapa -->
+            <div class="bg-surface border border-borderWarm rounded-2xl p-3 sm:p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
+                <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                    <span class="font-bold text-canopy uppercase tracking-wide text-[11px]">Filtrar:</span>
+                    <select id="filter-species" class="p-2 bg-canvas border border-borderWarm rounded-xl font-medium text-ink focus:outline-none focus:border-emerald-600">
+                        <option value="all">Todas las Especies</option>
+                    </select>
+
+                    <select id="filter-province" class="p-2 bg-canvas border border-borderWarm rounded-xl font-medium text-ink focus:outline-none focus:border-emerald-600">
+                        <option value="all">Todas las Provincias</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto">
+                    <span id="map-filtered-count" class="font-bold text-canopy bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-xl text-xs">
+                        Cargando árboles...
+                    </span>
+                    <button type="button" onclick="requestGPSLocation()" class="p-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 shadow-sm font-semibold flex items-center gap-1.5 text-xs transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        Mi GPS
+                    </button>
+                </div>
+            </div>
+
+            <!-- Contenedor del Mapa Leaflet -->
+            <div id="map-container" class="shadow-sm"></div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VISTA: REGISTRO DE SIEMBRA                -->
+        <!-- ========================================== -->
+        <section id="view-registro" class="app-view hidden">
+            <div class="max-w-2xl mx-auto bg-surface border border-borderWarm rounded-3xl p-6 sm:p-10 shadow-sm space-y-6 text-left">
+                <div class="border-b border-borderWarm pb-4">
+                    <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">Formulario Ciudadano</span>
+                    <h2 class="font-heading text-2xl font-bold text-canopy">Registrar Nuevo Árbol</h2>
+                    <p class="text-xs text-ink-muted mt-1">Comparte tu aporte ambiental geolocalizado en el mapa nacional.</p>
                 </div>
 
                 <form id="form-registro" class="space-y-6">
-
-                    <!-- SECCIÓN 1: UBICACIÓN GPS -->
-                    <div class="bg-emerald-50/70 p-5 rounded-2xl space-y-4 border border-emerald-100">
+                    <!-- Paso 1: Ubicación con GPS y Mapa -->
+                    <div class="space-y-3">
                         <div class="flex justify-between items-center">
-                            <label class="block font-bold text-slate-900 text-sm">📍 Ubicación Geográfica</label>
-                            <span class="text-xs text-emerald-700 font-medium">*Requerido</span>
+                            <h3 class="text-xs font-bold text-canopy uppercase tracking-wider">1. Ubicación del Árbol</h3>
+                            <button type="button" id="btn-gps" onclick="requestGPSLocation()" class="text-xs font-bold text-emerald-600 hover:underline flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
+                                Usar mi GPS Actual
+                            </button>
                         </div>
-                        
-                        <button type="button" id="btn-gps" onclick="requestGPSLocation()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow transition-all">
-                            🎯 Usar mi Ubicación Actual (GPS)
-                        </button>
 
-                        <p id="gps-status" class="text-xs text-slate-500 text-center">Haz clic para solicitar coordenadas del celular o ajusta el marcador abajo.</p>
-
-                        <!-- Mini Mapa Preview -->
-                        <div id="form-map" class="border border-emerald-200"></div>
+                        <div id="form-map" class="shadow-inner"></div>
+                        <p id="gps-status" class="text-[11px] text-ink-muted">Puedes arrastrar el marcador sobre el mapa para ajustar la posición exacta.</p>
 
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="text-xs text-slate-500">Latitud</label>
-                                <input type="text" id="input-lat" value="8.110000" readonly class="w-full text-xs p-2 bg-white rounded-lg border border-slate-200 text-slate-700">
+                                <label class="block text-[11px] font-semibold text-ink-muted mb-1">Latitud</label>
+                                <input type="text" id="input-lat" value="8.110000" readonly class="w-full p-2.5 bg-canvas/60 border border-borderWarm rounded-xl text-xs font-mono">
                             </div>
                             <div>
-                                <label class="text-xs text-slate-500">Longitud</label>
-                                <input type="text" id="input-lng" value="-80.970000" readonly class="w-full text-xs p-2 bg-white rounded-lg border border-slate-200 text-slate-700">
+                                <label class="block text-[11px] font-semibold text-ink-muted mb-1">Longitud</label>
+                                <input type="text" id="input-lng" value="-80.970000" readonly class="w-full p-2.5 bg-canvas/60 border border-borderWarm rounded-xl text-xs font-mono">
                             </div>
                         </div>
                         <input type="hidden" id="input-accuracy">
                     </div>
 
-                    <!-- SECCIÓN 2: INFORMACIÓN DEL ÁRBOLE -->
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-bold text-slate-900 mb-1">Especie o Tipo de Árbol *</label>
-                            <select id="species-select" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white outline-none">
-                                <!-- Opciones cargadas por JS -->
-                            </select>
-                        </div>
-
-                        <div id="input-custom-species-container" class="hidden">
-                            <label class="block text-sm font-bold text-slate-900 mb-1">Nombre de la Especie (si no está en lista)</label>
-                            <input type="text" id="input-custom-species" placeholder="Ej. Guayacán Morado" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500">
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Paso 2: Información del Árbol y Especie -->
+                    <div class="space-y-3 pt-2 border-t border-borderWarm">
+                        <h3 class="text-xs font-bold text-canopy uppercase tracking-wider">2. Especie y Entorno</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-sm font-bold text-slate-900 mb-1">Provincia *</label>
-                                <select id="input-province" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500">
-                                    <option value="Veraguas">Veraguas</option>
-                                    <option value="Herrera">Herrera</option>
-                                    <option value="Los Santos">Los Santos</option>
-                                    <option value="Chiriquí">Chiriquí</option>
-                                    <option value="Coclé">Coclé</option>
+                                <label class="block text-xs font-semibold text-ink-muted mb-1">Especie del Árbol *</label>
+                                <select id="species-select" required class="w-full p-3 bg-canvas border border-borderWarm rounded-xl text-sm focus:outline-none focus:border-emerald-600">
+                                    <!-- Opciones cargadas por JS -->
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-ink-muted mb-1">Fecha de Siembra *</label>
+                                <input type="date" id="input-date" required class="w-full p-3 bg-canvas border border-borderWarm rounded-xl text-sm focus:outline-none focus:border-emerald-600">
+                            </div>
+                        </div>
+
+                        <!-- Campo para especie personalizada si selecciona Otra -->
+                        <div id="input-custom-species-container" class="hidden">
+                            <label class="block text-xs font-semibold text-ink-muted mb-1">Nombre de la Especie *</label>
+                            <input type="text" id="input-custom-species" placeholder="Ej. Guayacán Morado, Caoba..." class="w-full p-3 bg-canvas border border-borderWarm rounded-xl text-sm focus:outline-none focus:border-emerald-600">
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-ink-muted mb-1">Provincia *</label>
+                                <select id="input-province" required class="w-full p-3 bg-canvas border border-borderWarm rounded-xl text-sm focus:outline-none focus:border-emerald-600">
                                     <option value="Panamá">Panamá</option>
                                     <option value="Panamá Oeste">Panamá Oeste</option>
                                     <option value="Colón">Colón</option>
+                                    <option value="Coclé">Coclé</option>
+                                    <option value="Herrera">Herrera</option>
+                                    <option value="Los Santos">Los Santos</option>
+                                    <option value="Veraguas" selected>Veraguas</option>
+                                    <option value="Chiriquí">Chiriquí</option>
                                     <option value="Bocas del Toro">Bocas del Toro</option>
                                     <option value="Darién">Darién</option>
+                                    <option value="Guna Yala">Guna Yala</option>
+                                    <option value="Emberá Wounaan">Emberá Wounaan</option>
+                                    <option value="Ngäbe Buglé">Ngäbe Buglé</option>
                                 </select>
                             </div>
-
                             <div>
-                                <label class="block text-sm font-bold text-slate-900 mb-1">Fecha de Siembra *</label>
-                                <input type="date" id="input-date" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500">
+                                <label class="block text-xs font-semibold text-ink-muted mb-1">Entorno de Siembra</label>
+                                <select id="input-environment" class="w-full p-3 bg-canvas border border-borderWarm rounded-xl text-sm focus:outline-none focus:border-emerald-600">
+                                    <option value="Finca / Terreno Privado">Finca / Terreno Privado</option>
+                                    <option value="Jardín Residencial">Jardín Residencial</option>
+                                    <option value="Escuela / Universidad">Escuela / Universidad</option>
+                                    <option value="Orilla de Río / Cuenca">Orilla de Río / Cuenca Hidrográfica</option>
+                                    <option value="Parque / Área Comunal">Parque Público / Área Comunal</option>
+                                    <option value="Otro">Otro entorno</option>
+                                </select>
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-bold text-slate-900 mb-1">Entorno / Tipo de Lugar de Siembra</label>
-                            <select id="input-environment" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500">
-                                <option value="Finca / Terreno Privado">Finca / Terreno Privado</option>
-                                <option value="Jardín Residencial">Jardín Residencial</option>
-                                <option value="Escuela / Universidad">Escuela / Universidad</option>
-                                <option value="Orilla de Río / Cuenca">Orilla de Río / Cuenca Hidrográfica</option>
-                                <option value="Parque / Área Comunal">Parque Público / Área Comunal</option>
-                                <option value="Otro">Otro entorno</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-bold text-slate-900 mb-1">Lugar o Descripción de la Ubicación</label>
-                            <input type="text" id="input-location-desc" placeholder="Ej. Frente a la escuela, finca familiar, etc." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                            <label class="block text-xs font-semibold text-ink-muted mb-1">Descripción / Referencia del lugar</label>
+                            <input type="text" id="input-location-desc" placeholder="Ej. Detrás de la escuela, Finca San José" class="w-full p-3 bg-canvas border border-borderWarm rounded-xl text-sm focus:outline-none focus:border-emerald-600">
                         </div>
                     </div>
 
-                    <!-- SECCIÓN 3: DATOS DEL RESPONSABLE DE LA SIEMBRA -->
-                    <div class="space-y-4 pt-4 border-t border-slate-100">
-                        <h3 class="font-bold text-slate-900 text-base">👤 Datos del Responsable de la Siembra</h3>
-                        
-                        <div>
-                            <label class="block text-xs text-slate-500 mb-1">Nombre Completo del Responsable *</label>
-                            <input type="text" id="input-planter-name" required placeholder="Nombre y apellido del responsable" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
-                        </div>
-
-                        <div>
-                            <label class="block text-xs text-slate-500 mb-1">Nombre Público a Mostrar en el Mapa (Opcional)</label>
-                            <input type="text" id="input-public-name" placeholder="Ej. Familia Rodríguez, Escuela San José o Anónimo" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs text-slate-500 mb-1">Correo Electrónico (Privado)</label>
-                                <input type="email" id="input-email" placeholder="correo@ejemplo.com" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-slate-500 mb-1">📱 Teléfono / WhatsApp (Privado - Para Seguimiento)</label>
-                                <input type="tel" id="input-phone" placeholder="Ej. +507 6000-0000" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
-                            </div>
-                        </div>
-
-                        <!-- PIN de Seguridad de 4 dígitos (v4.0) -->
-                        <div class="bg-amber-50/70 border border-amber-200/80 p-3.5 rounded-xl space-y-1.5">
-                            <label class="block text-xs font-bold text-slate-800 flex items-center justify-between">
-                                <span>🔑 PIN de Seguridad (4 Dígitos)</span>
-                                <span class="text-[10px] text-amber-700 font-normal">Opcional (se genera uno si se deja en blanco)</span>
-                            </label>
-                            <input type="text" id="input-security-pin" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="Ej. 1234" class="w-full p-2.5 bg-white border border-amber-300 rounded-lg text-sm font-mono tracking-widest text-center font-bold text-slate-800 focus:ring-2 focus:ring-amber-500">
-                            <p class="text-[11px] text-slate-600 leading-tight">
-                                💡 Este PIN te servirá para identificarte como el sembrador de este árbol y subir fotos de seguimiento o descargar tu certificado desde cualquier otro celular o computadora.
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- SECCIÓN 4: FOTOGRAFÍAS DE EVIDENCIA -->
-                    <div class="space-y-3 pt-4 border-t border-slate-100">
-                        <label class="block font-bold text-slate-900 text-sm">📷 Fotos de Evidencia (1 a 3 imágenes)</label>
-
+                    <!-- Paso 3: Datos del Sembrador -->
+                    <div class="space-y-3 pt-2 border-t border-borderWarm">
+                        <h3 class="text-xs font-bold text-canopy uppercase tracking-wider">3. Datos del Sembrador</h3>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <label class="cursor-pointer py-3 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold text-xs rounded-xl flex items-center justify-center gap-2 border border-emerald-200 shadow-sm transition-colors text-center">
-                                📸 Tomar Foto con Cámara
-                                <input type="file" id="input-camera" accept="image/*" capture="environment" class="hidden" onchange="handlePhotoUpload(event)">
-                            </label>
-                            <label class="cursor-pointer py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs rounded-xl flex items-center justify-center gap-2 border border-slate-200 shadow-sm transition-colors text-center">
-                                📁 Elegir de Galería / Archivo
-                                <input type="file" id="input-photos" accept="image/*" multiple class="hidden" onchange="handlePhotoUpload(event)">
-                            </label>
+                            <div>
+                                <label class="block text-xs font-semibold text-ink-muted mb-1">Nombre Completo *</label>
+                                <input type="text" id="input-planter-name" required placeholder="Ej. Ana Gómez" class="w-full p-3 bg-canvas border border-borderWarm rounded-xl text-sm focus:outline-none focus:border-emerald-600">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-ink-muted mb-1">Nombre Público (visible en ficha)</label>
+                                <input type="text" id="input-public-name" placeholder="Ej. Familia Gómez o Anónimo" class="w-full p-3 bg-canvas border border-borderWarm rounded-xl text-sm focus:outline-none focus:border-emerald-600">
+                            </div>
                         </div>
-
-                        <div id="photo-preview-container" class="flex flex-wrap gap-3 pt-2"></div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-ink-muted mb-1">Correo Electrónico *</label>
+                                <input type="email" id="input-email" required placeholder="correo@ejemplo.com" class="w-full p-3 bg-canvas border border-borderWarm rounded-xl text-sm focus:outline-none focus:border-emerald-600">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-ink-muted mb-1">Teléfono Móvil (WhatsApp) *</label>
+                                <input type="tel" id="input-phone" required placeholder="Ej. 6123-4567" class="w-full p-3 bg-canvas border border-borderWarm rounded-xl text-sm focus:outline-none focus:border-emerald-600">
+                            </div>
+                        </div>
                     </div>
 
+                    <!-- Paso 4: Fotografía Inicial -->
+                    <div class="space-y-3 pt-2 border-t border-borderWarm">
+                        <h3 class="text-xs font-bold text-canopy uppercase tracking-wider">4. Fotografía de la Siembra</h3>
+                        <div class="file-dropzone p-6 rounded-2xl text-center cursor-pointer" onclick="document.getElementById('input-photos').click()">
+                            <svg class="w-8 h-8 text-ink-muted/60 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            <p class="text-xs font-semibold text-canopy">Toca aquí para seleccionar o tomar una foto</p>
+                            <p class="text-[11px] text-ink-muted mt-0.5">Formatos JPG, PNG (máx. 10MB)</p>
+                            <input type="file" id="input-photos" accept="image/*" class="hidden">
+                        </div>
+                        <div id="photo-preview-container" class="flex flex-wrap gap-2 pt-2"></div>
+                    </div>
+
+                    <!-- Paso 5: PIN de Seguridad de 4 Dígitos -->
+                    <div class="bg-emerald-50 p-4 sm:p-5 rounded-2xl border border-emerald-200 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <label class="block text-xs font-bold text-canopy uppercase tracking-wider">
+                                5. Tu PIN Secreto de Sembrador (4 Dígitos)
+                            </label>
+                            <button type="button" onclick="generateRandomPin()" class="text-[11px] font-bold text-emerald-700 hover:underline">
+                                Generar PIN aleatorio
+                            </button>
+                        </div>
+                        <input type="text" id="input-security-pin" maxlength="4" pattern="[0-9]{4}" required placeholder="Ej. 1234" class="w-full p-3 bg-surface border border-borderWarm rounded-xl text-center font-mono font-bold text-lg tracking-widest text-canopy focus:outline-none focus:border-emerald-600">
+                        <p class="text-[11px] text-ink-muted leading-relaxed">
+                            Guarda este PIN de 4 dígitos. Te servirá para autenticarte como el sembrador de este árbol, agregarle fotos de seguimiento y descargar tu certificado digital.
+                        </p>
+                    </div>
+
+                    <!-- Notas Adicionales -->
                     <div>
-                        <label class="block text-xs text-slate-500 mb-1">Comentarios o Notas sobre la Siembra</label>
-                        <textarea id="input-notes" rows="2" placeholder="Cualquier detalle sobre la siembra o recomendaciones..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm"></textarea>
+                        <label class="block text-xs font-semibold text-ink-muted mb-1">Comentarios o historia de la siembra</label>
+                        <textarea id="input-notes" rows="2" placeholder="Dedicatoria familiar, motivo de la siembra o notas del terreno..." class="w-full p-3 bg-canvas border border-borderWarm rounded-xl text-sm focus:outline-none focus:border-emerald-600"></textarea>
                     </div>
 
-                    <button type="submit" onclick="handleFormSubmit(event)" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl shadow-lg transition-all text-base">
-                        🚀 Enviar Registro de Siembra
+                    <!-- Botón Enviar -->
+                    <button type="submit" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-md hover:shadow-lg transition-all text-sm flex items-center justify-center gap-2">
+                        Completar y Guardar Registro de Siembra
                     </button>
                 </form>
             </div>
         </section>
 
-        <!-- MODAL ÉXITO REGISTRO -->
-        <div id="modal-success" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-4 shadow-2xl">
-                <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto">
-                    🎉
-                </div>
-                <h3 class="text-2xl font-extrabold text-slate-900">¡Registro Exitoso!</h3>
-                <p class="text-sm text-slate-600">
-                    Tu siembra ha sido guardada correctamente con el código único:
-                </p>
-                <div class="p-3 bg-emerald-50 text-emerald-800 font-mono font-bold text-xl rounded-xl border border-emerald-200" id="success-tree-code">
-                    ARB-2026-000000
-                </div>
-
-                <div class="bg-amber-50 border border-amber-200 p-3 rounded-xl space-y-1 text-center">
-                    <p class="text-xs text-amber-800 font-semibold">🔑 Tu PIN de Seguridad para este árbol:</p>
-                    <p class="text-2xl font-black font-mono text-amber-900 tracking-widest" id="success-tree-pin">----</p>
-                    <p class="text-[11px] text-amber-700 italic">Guarda este PIN. Te servirá si deseas actualizar fotos o descargar tu certificado desde otro celular o PC.</p>
-                </div>
-
-                <p class="text-xs text-slate-500">
-                    El registro se encuentra en estado <strong>Pendiente</strong>. Tan pronto sea validado por el administrador, aparecerá automáticamente en el mapa público.
-                </p>
-                
-                <!-- Botones de Envío por WhatsApp y Certificado -->
-                <div class="space-y-2 pt-2">
-                    <button type="button" onclick="closeSuccessModal(); openCertificateModal(lastSubmittedTree ? lastSubmittedTree.code : '')" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl flex items-center justify-center gap-2 shadow-md text-sm transition-all transform hover:scale-[1.02]">
-                        📜 Ver y Descargar Mi Certificado Digital
-                    </button>
-                    <button type="button" onclick="sendWhatsAppConfirmation()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow text-sm">
-                        💬 Recibir Confirmación en WhatsApp
-                    </button>
-                    <button type="button" onclick="sendAdminNotificationWhatsApp()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl flex items-center justify-center gap-2 text-xs">
-                        🔔 Notificar al Administrador
-                    </button>
-                </div>
-                <button type="button" onclick="closeSuccessModal()" class="w-full py-2.5 text-slate-500 hover:text-slate-700 text-xs font-semibold">
-                    Cerrar ventana
-                </button>
-            </div>
-        </div>
-
-        <!-- MODAL DE INGRESO DE PIN DE SEGURIDAD (v4.0) -->
-        <div id="modal-enter-pin" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-4 shadow-2xl relative">
-                <button type="button" onclick="closePINModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
-                <div class="w-14 h-14 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-3xl mx-auto">
-                    🔑
-                </div>
-                <h3 class="text-xl font-extrabold text-slate-900">🌱 ¿Usted sembró este árbol?</h3>
-                <p class="text-xs text-slate-600">
-                    Ingresa el <strong>PIN de 4 dígitos</strong> del árbol <span id="pin-modal-tree-code" class="font-mono font-bold text-slate-800"></span> para identificarte como el sembrador y habilitar la opción de agregar fotos de seguimiento y descargar tu certificado.
-                </p>
-                
-                <div class="space-y-1">
-                    <input type="password" id="input-verify-pin" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="••••" class="w-full p-3 bg-slate-50 border-2 border-amber-400 rounded-xl text-2xl text-center font-mono font-black tracking-widest focus:ring-2 focus:ring-amber-500 outline-none">
-                    <p id="pin-verify-error" class="hidden text-xs text-red-600 font-semibold pt-1"></p>
-                </div>
-
-                <div class="space-y-2 pt-2">
-                    <button type="button" onclick="submitPINVerification()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl shadow-md text-sm transition-all">
-                        🔓 Verificar PIN y Desbloquear
-                    </button>
-                    <button type="button" onclick="closePINModal()" class="w-full py-2 text-slate-500 hover:text-slate-700 text-xs font-semibold">
-                        Cancelar
-                    </button>
-                </div>
-
-                <p class="text-[11px] text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-100 leading-tight">
-                    💡 <strong>¿Olvidaste tu PIN?</strong> Contacta al Administrador de Forestando Juntos. El Administrador puede ver y recuperar tu PIN en el panel de control.
-                </p>
-            </div>
-        </div>
-
-        <!-- ==================== VISTA 3: MAPA PÚBLICO ==================== -->
-        <section id="view-mapa" class="app-view hidden space-y-4">
-            
-            <!-- Barra de Filtros -->
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-wrap gap-4 items-center justify-between">
-                <div class="flex flex-wrap gap-3 items-center">
-                    <span class="text-sm font-bold text-slate-700">Filtros:</span>
-                    <select id="filter-species" class="p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium">
-                        <option value="all">Todas las Especies</option>
-                    </select>
-                    <select id="filter-province" class="p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium">
-                        <option value="all">Todas las Provincias</option>
-                    </select>
-                </div>
-                
-                <div class="text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100" id="map-filtered-count">
-                    Cargando marcadores...
-                </div>
-            </div>
-
-            <!-- Contenedor Mapa Leaflet -->
-            <div id="map-container" class="shadow-lg border border-slate-200 overflow-hidden"></div>
-        </section>
-
-        <!-- ==================== VISTA 4: FICHA ÁRBOL ==================== -->
-        <section id="view-arbol" class="app-view hidden">
+        <!-- ========================================== -->
+        <!-- VISTA: FICHA DEL ÁRBOL                    -->
+        <!-- ========================================== -->
+        <section id="view-arbol" class="app-view hidden space-y-6">
             <div id="tree-profile-content">
-                <!-- Se renderiza dinámicamente con JS -->
+                <p class="text-sm text-ink-muted italic py-12 text-center">Cargando ficha del árbol...</p>
             </div>
         </section>
 
-        <!-- ==================== VISTA 5: PANEL DE ADMINISTRACIÓN ==================== -->
+        <!-- ========================================== -->
+        <!-- VISTA: PANEL DE ADMINISTRACIÓN            -->
+        <!-- ========================================== -->
         <section id="view-admin" class="app-view hidden space-y-6">
-            
-            <!-- PANTALLA DE LOGIN DE ADMINISTRADOR -->
-            <div id="admin-login-container" class="max-w-md mx-auto bg-white p-8 rounded-3xl shadow-xl border border-slate-100 text-center space-y-6">
-                <div class="w-16 h-16 bg-slate-100 text-slate-800 rounded-full flex items-center justify-center text-3xl mx-auto">
-                    🔒
-                </div>
-                <div>
-                    <h2 class="text-2xl font-extrabold text-slate-900">Acceso Administrador</h2>
-                    <p class="text-xs text-slate-500 mt-1">Inicia sesión para moderar registros y gestionar el catálogo de especies.</p>
+            <!-- Login Administrador -->
+            <div id="admin-login-container" class="max-w-md mx-auto bg-surface border border-borderWarm rounded-3xl p-6 sm:p-8 shadow-sm text-left space-y-5">
+                <div class="text-center space-y-1">
+                    <div class="w-12 h-12 rounded-2xl bg-canopy text-white flex items-center justify-center mx-auto text-xl font-bold">
+                        🔒
+                    </div>
+                    <h2 class="font-heading text-xl font-bold text-canopy">Acceso Administrativo</h2>
+                    <p class="text-xs text-ink-muted">Gestión oficial de registros y validación en terreno.</p>
                 </div>
 
-                <form onsubmit="handleAdminLogin(event)" class="space-y-4 text-left">
+                <form onsubmit="handleAdminLogin(event)" class="space-y-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Correo Electrónico *</label>
-                        <input type="email" id="admin-email" required placeholder="Correo electrónico autorizado" autocomplete="off" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium">
+                        <label class="block text-xs font-semibold text-ink-muted mb-1">Correo Administrador</label>
+                        <input type="email" id="admin-email" required class="w-full p-3 bg-canvas border border-borderWarm rounded-xl text-sm focus:outline-none focus:border-emerald-600">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Contraseña *</label>
-                        <input type="password" id="admin-password" required placeholder="••••••••" autocomplete="current-password" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium">
+                        <label class="block text-xs font-semibold text-ink-muted mb-1">Contraseña</label>
+                        <input type="password" id="admin-password" required class="w-full p-3 bg-canvas border border-borderWarm rounded-xl text-sm focus:outline-none focus:border-emerald-600">
                     </div>
-                    <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition-colors">
-                        🔑 Iniciar Sesión de Admin
+                    <button type="submit" class="w-full py-3 bg-canopy hover:bg-canopy-light text-white font-bold rounded-xl text-sm transition-colors shadow-sm">
+                        Ingresar al Panel
                     </button>
                 </form>
-                
-                <p class="text-[11px] text-slate-400 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                    💡 Protegido mediante Supabase Auth (Row Level Security - RLS).
-                </p>
             </div>
 
-            <!-- CONTENIDO PROTEGIDO DEL PANEL -->
-            <div id="admin-content-container" class="hidden space-y-6">
-                <div class="flex flex-wrap justify-between items-center gap-4">
-                    <div>
-                        <h2 class="text-2xl font-extrabold text-slate-900">Panel de Administración 🔒</h2>
-                        <p class="text-sm text-slate-500">Revisa, aprueba y administra los registros de siembra.</p>
+            <!-- Dashboard de Administración (Una vez autenticado) -->
+            <div id="admin-content-container" class="hidden space-y-6 text-left">
+                <!-- Métricas Rápidas Admin -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="bg-surface p-4 rounded-2xl border border-borderWarm flex justify-between items-center">
+                        <div>
+                            <span class="text-[11px] text-ink-muted font-semibold uppercase block">Pendientes</span>
+                            <span id="admin-pending-count" class="font-heading font-extrabold text-2xl text-ochre">0</span>
+                        </div>
+                        <span class="px-2.5 py-1 bg-ochre-soft text-ochre text-xs font-bold rounded-lg">Por validar</span>
                     </div>
-                    
-                    <div class="flex flex-wrap gap-2">
-                        <button onclick="openAdminAddModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs flex items-center gap-1.5 shadow">
-                            ➕ Registrar Siembra Directa
-                        </button>
-                        <button onclick="exportTreesToCSV()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-xl text-xs flex items-center gap-2 shadow">
-                            📥 Exportar CSV / Excel
-                        </button>
-                        <button onclick="logoutAdmin()" class="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 font-semibold rounded-xl text-xs">
-                            Cerrar Sesión
-                        </button>
+                    <div class="bg-surface p-4 rounded-2xl border border-borderWarm flex justify-between items-center">
+                        <div>
+                            <span class="text-[11px] text-ink-muted font-semibold uppercase block">Aprobados</span>
+                            <span id="admin-approved-count" class="font-heading font-extrabold text-2xl text-emerald-700">0</span>
+                        </div>
+                        <span class="px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-lg">En mapa</span>
+                    </div>
+                    <div class="bg-surface p-4 rounded-2xl border border-borderWarm flex justify-between items-center">
+                        <div>
+                            <span class="text-[11px] text-ink-muted font-semibold uppercase block">Dados de Baja</span>
+                            <span id="admin-dead-count" class="font-heading font-extrabold text-2xl text-red-600">0</span>
+                        </div>
+                        <span class="px-2.5 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-lg">Inactivos</span>
                     </div>
                 </div>
 
-                <!-- Métricas Admin -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div class="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex justify-between items-center">
-                        <div>
-                            <p class="text-xs text-amber-800 font-bold uppercase">Solicitudes Pendientes</p>
-                            <p class="text-2xl font-extrabold text-amber-900" id="admin-pending-count">0</p>
-                        </div>
-                        <div class="text-2xl">⏳</div>
+                <!-- Barra de Acciones Admin -->
+                <div class="flex flex-wrap items-center justify-between gap-3 bg-surface p-4 rounded-2xl border border-borderWarm">
+                    <div class="flex items-center gap-2">
+                        <button onclick="openAdminAddModal()" class="px-3.5 py-2 bg-canopy hover:bg-canopy-light text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
+                            + Agregar Siembra Directa
+                        </button>
+                        <button onclick="exportTreesToCSV()" class="px-3.5 py-2 bg-canvas hover:bg-surface border border-borderWarm text-ink font-semibold text-xs rounded-xl transition-colors">
+                            Descargar CSV
+                        </button>
                     </div>
-
-                    <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl flex justify-between items-center">
-                        <div>
-                            <p class="text-xs text-emerald-800 font-bold uppercase">Árboles Activos (Vivos)</p>
-                            <p class="text-2xl font-extrabold text-emerald-900" id="admin-approved-count">0</p>
-                        </div>
-                        <div class="text-2xl">🌿</div>
-                    </div>
-
-                    <div class="bg-rose-50 border border-rose-200 p-4 rounded-2xl flex justify-between items-center">
-                        <div>
-                            <p class="text-xs text-rose-800 font-bold uppercase">Árboles Dados de Baja</p>
-                            <p class="text-2xl font-extrabold text-rose-900" id="admin-dead-count">0</p>
-                        </div>
-                        <div class="text-2xl">🥀</div>
-                    </div>
+                    <button onclick="logoutAdmin()" class="px-3.5 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors">
+                        Cerrar Sesión
+                    </button>
                 </div>
 
                 <!-- Tabla de Registros -->
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="bg-surface rounded-2xl border border-borderWarm overflow-hidden shadow-sm">
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-slate-50 text-slate-500 font-semibold text-xs border-b border-slate-200 uppercase">
-                                    <th class="py-3.5 px-4">Foto</th>
-                                    <th class="py-3.5 px-4">Código</th>
-                                    <th class="py-3.5 px-4">Especie</th>
-                                    <th class="py-3.5 px-4">Participante</th>
-                                    <th class="py-3.5 px-4">Provincia</th>
-                                    <th class="py-3.5 px-4">Fecha</th>
-                                    <th class="py-3.5 px-4">Estado</th>
-                                    <th class="py-3.5 px-4 text-right">Acciones</th>
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-canvas border-b border-borderWarm text-ink-muted uppercase font-bold text-[10px]">
+                                <tr>
+                                    <th class="py-3 px-4">Foto</th>
+                                    <th class="py-3 px-4">Código & PIN</th>
+                                    <th class="py-3 px-4">Especie</th>
+                                    <th class="py-3 px-4">Sembrador</th>
+                                    <th class="py-3 px-4">Provincia</th>
+                                    <th class="py-3 px-4">Fecha</th>
+                                    <th class="py-3 px-4">Estado</th>
+                                    <th class="py-3 px-4 text-right">Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody id="admin-table-body">
-                                <!-- Filas generadas dinámicamente -->
+                            <tbody id="admin-table-body" class="divide-y divide-borderWarm/60">
+                                <!-- Filas renderizadas con JS -->
                             </tbody>
                         </table>
                     </div>
@@ -643,167 +617,245 @@
             </div>
         </section>
 
-        <!-- MODAL DE CERTIFICADO DIGITAL DE SIEMBRA -->
-        <div id="modal-certificate" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto hidden">
-            <div class="relative bg-white rounded-3xl shadow-2xl max-w-3xl w-full p-4 sm:p-6 space-y-4 max-h-[95vh] overflow-y-auto">
-                <!-- Header Modal -->
-                <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-                    <h3 class="text-lg font-extrabold text-slate-800 flex items-center gap-2">
-                        📜 Certificado Oficial de Siembra
-                    </h3>
-                    <button onclick="closeCertificateModal()" class="text-slate-400 hover:text-slate-700 text-xl font-bold p-1">✕</button>
-                </div>
-
-                <!-- DIPLOMA CARD (Capturado por html2canvas) -->
-                <div id="certificate-card" class="bg-gradient-to-br from-emerald-950 via-slate-900 to-emerald-900 text-white p-6 sm:p-10 rounded-2xl border-4 border-amber-400/80 shadow-2xl relative overflow-hidden text-center space-y-6">
-                    <!-- Decoración de Fondo -->
-                    <div class="absolute -top-16 -right-16 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
-                    <div class="absolute -bottom-16 -left-16 w-64 h-64 bg-amber-400/10 rounded-full blur-3xl pointer-events-none"></div>
-
-                    <!-- Encabezado Diploma -->
-                    <div class="flex flex-col items-center space-y-2 relative z-10">
-                        <div class="flex items-center gap-3">
-                            <img src="img/logo.jpg" class="w-14 h-14 rounded-full border-2 border-amber-400 shadow-md object-cover">
-                            <div class="text-left">
-                                <span class="text-xl font-black text-emerald-400 tracking-tight block">Forestando Juntos</span>
-                                <span class="text-xs font-semibold text-emerald-200 tracking-widest uppercase block">República de Panamá 🇵🇦</span>
-                            </div>
-                        </div>
-                        <div class="pt-2">
-                            <span class="px-4 py-1 bg-amber-400/20 text-amber-300 border border-amber-400/40 font-mono text-[11px] font-bold rounded-full uppercase tracking-widest shadow-sm">
-                                RECONOCIMIENTO AMBIENTAL OFICIAL
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Título -->
-                    <div class="space-y-1 relative z-10">
-                        <h1 class="text-2xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-emerald-200 to-amber-300 tracking-wide">
-                            CERTIFICADO DE HUELLA VERDE
-                        </h1>
-                        <p class="text-xs sm:text-sm text-emerald-200/90 italic">Se otorga el presente reconocimiento con honor y gratitud a:</p>
-                    </div>
-
-                    <!-- Nombre del Sembrador e Insignia -->
-                    <div class="py-2 border-y border-amber-400/30 relative z-10 space-y-1">
-                        <h2 id="cert-planter-name" class="text-2xl sm:text-3xl font-black text-amber-300 tracking-wide">
-                            Cargando Nombre...
-                        </h2>
-                        <div id="cert-planter-badge-container">
-                            <span id="cert-planter-badge" class="inline-block px-3 py-0.5 bg-amber-400/20 text-amber-300 border border-amber-400/40 text-[11px] font-bold rounded-full">
-                                🥉 Sembrador Inicial
-                            </span>
-                        </div>
-                    </div>
-
-                    <p class="text-xs sm:text-sm text-slate-200 max-w-xl mx-auto leading-relaxed relative z-10">
-                        Por su valioso compromiso con la reforestación, sembrando vida, restaurando ecosistemas y dejando una huella verde perdurable para las futuras generaciones de Panamá.
-                    </p>
-
-                    <!-- Ficha Técnica & QR -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-950/70 p-4 rounded-xl border border-emerald-500/30 relative z-10 text-left text-xs">
-                        <div class="flex items-center justify-center">
-                            <img id="cert-photo" src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80" class="w-24 h-24 sm:w-28 sm:h-28 object-cover rounded-lg border-2 border-emerald-400 shadow-md">
-                        </div>
-                        <div class="space-y-1.5 sm:col-span-1 justify-center flex flex-col">
-                            <div>
-                                <span class="text-emerald-400 font-bold uppercase text-[10px] block">Código de Siembra</span>
-                                <span id="cert-code" class="font-mono font-black text-amber-300 text-sm">ARB-000000</span>
-                            </div>
-                            <div>
-                                <span class="text-emerald-400 font-bold uppercase text-[10px] block">Especie Sembrada</span>
-                                <span id="cert-species" class="font-bold text-white text-xs">Guayacán Morado</span>
-                            </div>
-                            <div>
-                                <span class="text-emerald-400 font-bold uppercase text-[10px] block">Ubicación & Fecha</span>
-                                <span id="cert-location" class="text-slate-300 text-[11px] block">Veraguas • 2026-10-04</span>
-                            </div>
-                        </div>
-                        <div class="flex flex-col items-center justify-center space-y-1 border-t sm:border-t-0 sm:border-l border-emerald-500/30 pt-2 sm:pt-0">
-                            <img id="cert-qr-img" src="" class="w-20 h-20 bg-white p-1 rounded-lg border border-amber-300 shadow">
-                            <span class="text-[9px] text-emerald-300 font-mono text-center">Escanea para verificar en la web</span>
-                        </div>
-                    </div>
-
-                    <!-- Pie del Diploma -->
-                    <div class="flex flex-wrap justify-between items-end pt-2 text-[10px] text-emerald-200/80 border-t border-emerald-800/60 relative z-10">
-                        <div class="text-left space-y-0.5">
-                            <p class="font-bold text-emerald-300">🌱 Forestando Juntos — Panamá</p>
-                            <p class="text-[9px]">Validado por Supabase Cloud (SSOT)</p>
-                        </div>
-                        <div class="text-right space-y-0.5">
-                            <p class="font-bold text-amber-300">Desarrollado por Nando Compusystem © 2026</p>
-                            <p class="text-[9px] text-slate-400">forestandojuntos.org</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Acciones Modal -->
-                <div class="flex flex-col sm:flex-row gap-3 pt-2">
-                    <button onclick="downloadCertificatePNG()" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 text-sm transition-colors">
-                        📥 Descargar Certificado (Imagen PNG)
-                    </button>
-                    <button onclick="shareCertificateLink()" class="py-3 px-6 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
-                        📲 Compartir por WhatsApp
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- MODAL AGREGAR FOTO DE SEGUIMIENTO (Idea 3) -->
-        <div id="modal-add-tree-photo" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto hidden">
-            <div class="relative bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-4">
-                <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-                    <h3 class="text-lg font-extrabold text-slate-800 flex items-center gap-2">
-                        📸 Registrar Foto de Crecimiento
-                    </h3>
-                    <button onclick="closeAddPhotoModal()" class="text-slate-400 hover:text-slate-700 text-xl font-bold p-1">✕</button>
-                </div>
-
-                <form onsubmit="handleFollowUpPhotoSubmit(event)" class="space-y-4 text-left">
-                    <input type="hidden" id="input-followup-tree-code">
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Seleccionar Foto Nueva del Árbol *</label>
-                        <input type="file" id="input-followup-photo" accept="image/*" required class="w-full text-xs text-slate-500 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
-                        <div id="followup-photo-preview" class="mt-3 hidden">
-                            <img id="followup-preview-img" src="" class="w-full h-44 object-cover rounded-2xl border border-slate-200 shadow-sm">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Nota de Crecimiento / Estado (Opcional)</label>
-                        <textarea id="input-followup-note" rows="2" placeholder="Ej: Cumplió 6 meses. Mide 1.5 metros y floreció." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"></textarea>
-                    </div>
-
-                    <button type="submit" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl shadow transition-colors text-sm">
-                        📸 Guardar Foto de Crecimiento
-                    </button>
-                </form>
-            </div>
-        </div>
-
     </main>
 
-    <!-- FOOTER -->
-    <footer class="bg-white border-t border-slate-100 py-6 mt-12 text-center text-xs text-slate-500">
-        <div class="max-w-7xl mx-auto px-4 space-y-2">
-            <p class="font-bold text-slate-800 text-sm">🌱 Forestando Juntos — Panamá</p>
-            <p class="text-slate-500">Plataforma digital para el registro, mapeo y monitoreo de siembra de árboles.</p>
-            <p class="pt-2 text-slate-400 text-[11px] border-t border-slate-100 w-fit mx-auto px-6 flex items-center justify-center gap-2 flex-wrap">
-                <span>Desarrollado por <span class="font-bold text-emerald-800">Nando Compusystem</span> © 2026 • Todos los derechos reservados</span>
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm" title="Versión actual de la plataforma en ejecución">
-                    v4.0
-                </span>
-                <span class="inline-block text-slate-300">• <a href="#admin" onclick="showView('admin')" class="hover:text-slate-500 transition-colors opacity-50" title="Acceso Administrativo">🔒</a></span>
+    <!-- ========================================== -->
+    <!-- MODALES                                    -->
+    <!-- ========================================== -->
+
+    <!-- Modal 1: Ingreso de PIN de Verificación -->
+    <div id="modal-enter-pin" class="fixed inset-0 bg-canopy/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-surface rounded-3xl p-6 sm:p-8 max-w-sm w-full space-y-4 shadow-2xl relative border border-borderWarm text-left">
+            <button onclick="closePINModal()" class="absolute top-4 right-4 text-ink-muted hover:text-canopy font-bold text-lg">✕</button>
+            
+            <div class="space-y-1">
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">Autenticación</span>
+                <h3 class="font-heading text-lg font-bold text-canopy">¿Usted sembró este árbol?</h3>
+                <p class="text-xs text-ink-muted">
+                    Ingrese el PIN de 4 dígitos creado para el árbol <strong id="pin-modal-tree-code" class="text-canopy font-mono">ARB-XXXXXX</strong>.
+                </p>
+            </div>
+
+            <div class="space-y-2">
+                <input type="password" id="input-verify-pin" maxlength="4" pattern="[0-9]{4}" placeholder="••••" class="w-full p-3 bg-canvas border border-borderWarm rounded-xl text-center font-mono font-extrabold text-2xl tracking-[0.5em] text-canopy focus:outline-none focus:border-emerald-600">
+                <p id="pin-verify-error" class="text-xs text-red-600 font-semibold hidden"></p>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button type="button" onclick="closePINModal()" class="flex-1 py-2.5 bg-canvas hover:bg-stone-100 text-ink font-semibold rounded-xl text-xs transition-colors">
+                    Cancelar
+                </button>
+                <button type="button" onclick="submitPINVerification()" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-colors shadow-sm">
+                    Verificar PIN
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 2: Agregar Foto de Seguimiento -->
+    <div id="modal-add-tree-photo" class="fixed inset-0 bg-canopy/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-surface rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-4 shadow-2xl relative border border-borderWarm text-left">
+            <button onclick="closeAddPhotoModal()" class="absolute top-4 right-4 text-ink-muted hover:text-canopy font-bold text-lg">✕</button>
+            
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">Línea de Tiempo</span>
+                <h3 class="font-heading text-lg font-bold text-canopy">Agregar Foto de Crecimiento</h3>
+                <p class="text-xs text-ink-muted">Registra el progreso visual de este árbol a través de los meses.</p>
+            </div>
+
+            <form onsubmit="handleFollowUpPhotoSubmit(event)" class="space-y-3">
+                <input type="hidden" id="input-followup-tree-code">
+                <div>
+                    <label class="block text-xs font-semibold text-ink-muted mb-1">Seleccionar Fotografía *</label>
+                    <input type="file" id="input-followup-photo" accept="image/*" required class="w-full p-2.5 bg-canvas border border-borderWarm rounded-xl text-xs">
+                </div>
+
+                <div id="followup-photo-preview" class="hidden">
+                    <img id="followup-preview-img" src="" alt="Vista previa" class="w-full h-36 object-cover rounded-xl border border-borderWarm">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-ink-muted mb-1">Nota del Crecimiento (Opcional)</label>
+                    <input type="text" id="input-followup-note" placeholder="Ej. A 6 meses, brotaron nuevas ramas" class="w-full p-2.5 bg-canvas border border-borderWarm rounded-xl text-xs">
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeAddPhotoModal()" class="flex-1 py-2.5 bg-canvas text-ink font-semibold rounded-xl text-xs">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm">
+                        Subir Foto
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 3: Certificado Digital Oficial de Siembra -->
+    <div id="modal-certificate" class="fixed inset-0 bg-canopy/70 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto hidden">
+        <div class="bg-surface rounded-3xl p-4 sm:p-6 max-w-2xl w-full space-y-4 shadow-2xl relative border border-borderWarm my-auto text-center">
+            <button onclick="closeCertificateModal()" class="absolute top-4 right-4 text-ink-muted hover:text-canopy font-bold text-lg z-10">✕</button>
+
+            <!-- Tarjeta Certificado (Capturada por html2canvas) -->
+            <div id="certificate-card" class="certificate-frame p-6 sm:p-10 rounded-2xl text-center space-y-5 bg-white text-ink">
+                <!-- Encabezado del Certificado -->
+                <div class="space-y-1">
+                    <div class="w-12 h-12 mx-auto rounded-full bg-canopy text-white flex items-center justify-center font-bold text-lg mb-2 shadow-sm">
+                        🌱
+                    </div>
+                    <span class="text-[11px] font-extrabold uppercase tracking-[0.25em] text-emerald-700 block">República de Panamá</span>
+                    <h2 class="font-heading font-extrabold text-2xl sm:text-3xl text-canopy tracking-tight">Certificado de Siembra</h2>
+                    <p class="text-xs text-ink-muted italic">Registro Ciudadano de Conservación y Reforestación</p>
+                </div>
+
+                <p class="text-xs text-ink-muted max-w-md mx-auto">
+                    Por cuanto se hace constar que la siguiente siembra ha sido registrada y geolocalizada en la plataforma comunitaria <strong>Forestando Juntos</strong>:
+                </p>
+
+                <!-- Nombre del Sembrador -->
+                <div class="py-2 border-y border-borderWarm/80 space-y-1">
+                    <p class="text-[11px] uppercase font-bold text-ink-muted tracking-wider">Otorgado con gratitud a:</p>
+                    <h3 id="cert-planter-name" class="font-heading text-xl sm:text-2xl font-extrabold text-emerald-700">Sembrador Voluntario</h3>
+                    <div id="cert-planter-badge-container">
+                        <span id="cert-planter-badge" class="inline-block px-3 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">Sembrador Comunitario</span>
+                    </div>
+                </div>
+
+                <!-- Ficha Técnica, Foto y QR -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-canvas/70 p-3.5 rounded-xl border border-borderWarm items-center">
+                    <div class="flex items-center justify-center">
+                        <img id="cert-photo" src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80" alt="Foto del Árbol" class="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-xl border border-borderWarm shadow-sm">
+                    </div>
+
+                    <div class="space-y-1.5 text-left text-xs">
+                        <div>
+                            <span class="text-[10px] text-ink-muted uppercase font-bold block">Código Único</span>
+                            <span id="cert-code" class="font-mono font-bold text-canopy block text-sm">ARB-000000</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-ink-muted uppercase font-bold block">Especie</span>
+                            <span id="cert-species" class="font-bold text-canopy block text-sm">Guayacán Real</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-ink-muted uppercase font-bold block">Ubicación y Fecha</span>
+                            <span id="cert-location" class="font-medium text-ink block">Panamá • 2026</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col items-center justify-center space-y-1 border-t sm:border-t-0 sm:border-l border-borderWarm/80 pt-2 sm:pt-0">
+                        <img id="cert-qr-img" src="" alt="Código QR del Árbol" class="w-16 h-16 sm:w-20 sm:h-20 bg-white p-1 rounded-xl border border-borderWarm shadow-sm">
+                        <span class="text-[9px] text-ink-muted font-mono text-center">Escanea para verificar ficha</span>
+                    </div>
+                </div>
+
+                <!-- Footer del Certificado -->
+                <div class="flex items-center justify-between pt-2">
+                    <div class="text-left text-[10px] text-ink-muted space-y-0.5">
+                        <p class="font-bold text-canopy">Forestando Juntos Panamá</p>
+                        <p>Validado por geolocalización satelital</p>
+                    </div>
+
+                    <div class="text-right text-[10px] text-ink-muted space-y-0.5">
+                        <p class="font-mono text-[9px] text-ink-muted">Desarrollado por Nando Compusystem © 2026</p>
+                        <p class="text-[9px] text-emerald-700 font-medium">forestandojuntos.org</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones de Acción del Certificado -->
+            <div class="flex flex-col sm:flex-row gap-2 pt-2">
+                <button onclick="downloadCertificatePNG()" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm transition-colors flex items-center justify-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    Descargar Certificado en PNG
+                </button>
+                <button onclick="shareCertificateLink()" class="flex-1 py-3 bg-canvas hover:bg-stone-100 text-canopy border border-borderWarm font-semibold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5">
+                    Compartir por WhatsApp
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 4: Éxito tras Registro -->
+    <div id="modal-success" class="fixed inset-0 bg-canopy/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-surface rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-5 shadow-2xl relative border border-borderWarm text-center">
+            <div class="w-14 h-14 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center mx-auto text-2xl font-bold">
+                🌱
+            </div>
+
+            <div class="space-y-1">
+                <h3 class="font-heading text-xl font-bold text-canopy">¡Siembra Registrada con Éxito!</h3>
+                <p class="text-xs text-ink-muted">Gracias por dejar tu huella verde en el territorio de Panamá.</p>
+            </div>
+
+            <div class="bg-canvas p-4 rounded-2xl border border-borderWarm space-y-2 text-left text-xs">
+                <div class="flex justify-between items-center">
+                    <span class="text-ink-muted font-semibold">Código Único:</span>
+                    <span id="success-tree-code" class="font-mono font-bold text-canopy text-sm">ARB-XXXXXX</span>
+                </div>
+                <div class="flex justify-between items-center pt-2 border-t border-borderWarm">
+                    <span class="text-ink-muted font-semibold">Tu PIN Secreto:</span>
+                    <span id="success-tree-pin" class="font-mono font-bold text-emerald-700 text-sm">----</span>
+                </div>
+            </div>
+
+            <p class="text-[11px] text-ink-muted leading-relaxed">
+                Hemos enviado la confirmación a tu WhatsApp. Una vez validada la siembra, se marcará activa en el mapa.
             </p>
+
+            <button onclick="document.getElementById('modal-success').classList.add('hidden'); showView('home')" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm transition-colors">
+                Ir al Inicio
+            </button>
+        </div>
+    </div>
+
+    <!-- Pie de Página Refinado -->
+    <footer class="bg-canopy text-white py-10 mt-12 border-t border-canopy-light">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 grid grid-cols-1 sm:grid-cols-3 gap-8 text-left text-xs">
+            <div class="space-y-2">
+                <div class="flex items-center gap-2">
+                    <span class="font-heading font-extrabold text-lg text-white">Forestando <span class="text-emerald-400">Juntos</span></span>
+                </div>
+                <p class="text-white/60 leading-relaxed text-[11px]">
+                    Iniciativa abierta para el mapeo, geolocalización y monitoreo colectivo de siembras de árboles en toda la República de Panamá.
+                </p>
+            </div>
+
+            <div class="space-y-2">
+                <span class="font-bold text-ochre uppercase tracking-wider text-[11px] block">Navegación</span>
+                <ul class="space-y-1.5 text-white/70">
+                    <li><button onclick="showView('home')" class="hover:text-white transition-colors">Inicio</button></li>
+                    <li><button onclick="showView('mapa')" class="hover:text-white transition-colors">Mapa Satelital</button></li>
+                    <li><button onclick="showView('registro')" class="hover:text-white transition-colors">Registrar Árbol</button></li>
+                    <li><button onclick="showView('admin')" class="hover:text-white transition-colors">Acceso de Administrador</button></li>
+                </ul>
+            </div>
+
+            <div class="space-y-2">
+                <span class="font-bold text-ochre uppercase tracking-wider text-[11px] block">Compromiso</span>
+                <p class="text-white/60 leading-relaxed text-[11px]">
+                    De mano en mano, reforestando Panamá. Protegiendo nuestras cuencas hidrográficas y regenerando la biodiversidad nativa.
+                </p>
+                <p class="text-[10px] text-white/40 pt-2 border-t border-white/10 font-mono">
+                    Desarrollado por Nando Compusystem © 2026
+                </p>
+            </div>
         </div>
     </footer>
 
-    <!-- JS de la Aplicación -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase-config.js?v=4.2"></script>
-    <script src="js/app.js?v=4.2"></script>
+    <!-- Scripts de la Aplicación -->
+    <script src="js/supabase-config.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            if (menu) menu.classList.toggle('hidden');
+        }
 
+        function generateRandomPin() {
+            const pin = String(Math.floor(1000 + Math.random() * 9000));
+            const input = document.getElementById('input-security-pin');
+            if (input) input.value = pin;
+        }
+    </script>
 </body>
 </html>
