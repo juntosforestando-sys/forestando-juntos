@@ -17,6 +17,18 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 
+    <!-- Detección Temprana de Modo Oscuro -->
+    <script>
+        (function() {
+            try {
+                var s = localStorage.getItem('fj_theme');
+                if (s === 'dark' || (!s && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.classList.add('dark');
+                }
+            } catch(e) {}
+        })();
+    </script>
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -101,8 +113,14 @@
                 </button>
             </div>
 
-            <!-- Botón de Registro Principal (Verde Esmeralda Original) -->
+            <!-- Botón de Registro Principal y Selector de Tema -->
             <div class="flex items-center gap-2">
+                <!-- Selector Modo Claro / Oscuro -->
+                <button type="button" id="theme-toggle-btn" onclick="toggleTheme()" class="p-2 rounded-xl text-ink-muted hover:text-canopy hover:bg-canvas transition-colors border border-borderWarm flex items-center justify-center w-9 h-9" title="Alternar Modo Claro / Oscuro" aria-label="Alternar tema">
+                    <span id="theme-icon-sun" class="hidden text-sm">☀️</span>
+                    <span id="theme-icon-moon" class="text-sm">🌙</span>
+                </button>
+
                 <button onclick="showView('registro')" id="nav-registro" class="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all transform hover:-translate-y-0.5 active:translate-y-0">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                     Registrar Siembra
@@ -128,6 +146,10 @@
             </button>
             <button onclick="showView('admin'); toggleMobileMenu()" class="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-canvas text-ink-muted">
                 Panel de Administración
+            </button>
+            <button type="button" onclick="toggleTheme()" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-canvas text-ink-muted">
+                <span id="mobile-theme-text">Modo Oscuro</span>
+                <span id="mobile-theme-icon">🌙</span>
             </button>
             <button onclick="showView('registro'); toggleMobileMenu()" class="w-full text-center px-4 py-3 bg-emerald-600 text-white rounded-xl font-bold mt-2 shadow-sm">
                 + Registrar Siembra

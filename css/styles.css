@@ -179,3 +179,149 @@ div[style*="z-index: 2147483647"] {
   opacity: 0 !important;
   pointer-events: none !important;
 }
+
+
+/* ==========================================================================
+   MODO OSCURO (NOCHE BOTÁNICA) - PURE CSS OVERRIDES
+   Sin alterar la estructura, tamaños ni paleta esmeralda del diseño original
+   ========================================================================== */
+
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark,
+html.dark body {
+  background-color: #0D1613 !important;
+  color: #E2E8F0 !important;
+}
+
+/* Fondos y Superficies */
+html.dark .bg-canvas {
+  background-color: #0D1613 !important;
+}
+
+html.dark .bg-surface {
+  background-color: #14221D !important;
+}
+
+html.dark header nav {
+  background-color: rgba(20, 34, 29, 0.95) !important;
+  border-color: #20352D !important;
+}
+
+html.dark #mobile-menu {
+  background-color: #14221D !important;
+  border-color: #20352D !important;
+}
+
+/* Bordes */
+html.dark .border-borderWarm,
+html.dark [class*="border-borderWarm"] {
+  border-color: #20352D !important;
+}
+
+/* Tipografías */
+html.dark .text-canopy {
+  color: #F1F5F9 !important;
+}
+
+html.dark .text-ink {
+  color: #E2E8F0 !important;
+}
+
+html.dark .text-ink-muted {
+  color: #94A3B8 !important;
+}
+
+/* Formularios, Inputs y Selects */
+html.dark input,
+html.dark select,
+html.dark textarea {
+  color-scheme: dark;
+  background-color: #0D1613 !important;
+  border-color: #20352D !important;
+  color: #F1F5F9 !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #64748B !important;
+}
+
+/* Badges y contenedores secundarios */
+html.dark .bg-sage-soft {
+  background-color: #162B21 !important;
+  color: #A7F3D0 !important;
+}
+
+html.dark .bg-ochre-soft {
+  background-color: #2A2111 !important;
+  color: #FCD34D !important;
+}
+
+html.dark .bg-emerald-50 {
+  background-color: #0F2D20 !important;
+  color: #A7F3D0 !important;
+}
+
+/* Dropzone de fotos */
+html.dark .file-dropzone {
+  background-color: #0D1613 !important;
+  border-color: #20352D !important;
+}
+
+html.dark .file-dropzone:hover,
+html.dark .file-dropzone.dragover {
+  border-color: #059669 !important;
+  background-color: #0F2D20 !important;
+}
+
+/* Popups del Mapa Leaflet */
+html.dark .leaflet-popup-content-wrapper {
+  background: #14221D !important;
+  color: #F1F5F9 !important;
+  border: 1px solid #20352D !important;
+}
+
+html.dark .leaflet-popup-tip {
+  background: #14221D !important;
+  border: 1px solid #20352D !important;
+}
+
+/* Scrollbars */
+html.dark ::-webkit-scrollbar-track {
+  background: #0D1613;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: #20352D;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #2D4A3F;
+}
+
+/* El Certificado de Siembra siempre permanece auténtico, blanco y nítido para impresión */
+html.dark #certificate-card {
+  background-color: #FFFFFF !important;
+  color: #192420 !important;
+}
+
+html.dark #certificate-card * {
+  color-scheme: light;
+}
+
+html.dark #certificate-card .text-canopy {
+  color: #132B22 !important;
+}
+
+html.dark #certificate-card .text-ink-muted {
+  color: #606C66 !important;
+}
+
+html.dark #certificate-card .bg-canvas\/70 {
+  background-color: rgba(248, 246, 240, 0.7) !important;
+}
+
+html.dark #certificate-card .border-borderWarm {
+  border-color: #E8E3D7 !important;
+}

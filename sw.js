@@ -1,5 +1,5 @@
 // Service Worker para soporte 100% Offline en campo (Forestando Juntos)
-const CACHE_NAME = 'forestando-juntos-v4.2-emerald';
+const CACHE_NAME = 'forestando-juntos-v4.5-theme';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',

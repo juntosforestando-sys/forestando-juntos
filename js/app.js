@@ -24,6 +24,9 @@ if (document.readyState === 'loading') {
 }
 
 async function initApp() {
+    // 0. Inicializar Tema Claro / Oscuro
+    initTheme();
+
     // 1. Cargar datos locales de inmediato (0ms de espera, interactividad inmediata)
     fallbackLocalData();
     fallbackLocalSpecies();
@@ -196,6 +199,47 @@ function saveTreesToStorage() {
 
 function saveSpeciesToStorage() {
     localStorage.setItem('fj_species', JSON.stringify(state.speciesList));
+}
+
+// ==========================================
+// Control de Modo Claro / Modo Oscuro
+// ==========================================
+function initTheme() {
+    const isDark = document.documentElement.classList.contains('dark');
+    updateThemeIcons(isDark);
+}
+
+function toggleTheme() {
+    const isDark = document.documentElement.classList.toggle('dark');
+    try {
+        localStorage.setItem('fj_theme', isDark ? 'dark' : 'light');
+    } catch (e) {}
+    updateThemeIcons(isDark);
+    showToast(isDark ? '🌙 Modo Oscuro activado' : '☀️ Modo Claro activado');
+}
+
+function updateThemeIcons(isDark) {
+    const sunIcon = document.getElementById('theme-icon-sun');
+    const moonIcon = document.getElementById('theme-icon-moon');
+    const mobileIcon = document.getElementById('mobile-theme-icon');
+    const mobileText = document.getElementById('mobile-theme-text');
+
+    if (sunIcon && moonIcon) {
+        if (isDark) {
+            sunIcon.classList.remove('hidden');
+            moonIcon.classList.add('hidden');
+        } else {
+            sunIcon.classList.add('hidden');
+            moonIcon.classList.remove('hidden');
+        }
+    }
+
+    if (mobileIcon) {
+        mobileIcon.textContent = isDark ? '☀️' : '🌙';
+    }
+    if (mobileText) {
+        mobileText.textContent = isDark ? 'Modo Claro' : 'Modo Oscuro';
+    }
 }
 
 // Control del Enrutador (Vistas)
