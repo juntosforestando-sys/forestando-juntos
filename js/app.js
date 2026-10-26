@@ -964,6 +964,10 @@ async function handleFormSubmit(e) {
         state.selectedPhotos = [];
         const previewContainer = document.getElementById('photo-preview-container');
         if (previewContainer) previewContainer.innerHTML = '';
+        const photoInputEl = document.getElementById('input-photos');
+        if (photoInputEl) photoInputEl.value = '';
+        const cameraInputEl = document.getElementById('input-camera');
+        if (cameraInputEl) cameraInputEl.value = '';
 
         if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
         if (latEl) latEl.value = state.currentFormCoords.lat.toFixed(6);
@@ -1508,6 +1512,9 @@ function openAddPhotoModal(code) {
     const photoInput = document.getElementById('input-followup-photo');
     if (photoInput) photoInput.value = '';
 
+    const cameraInput = document.getElementById('input-followup-camera');
+    if (cameraInput) cameraInput.value = '';
+
     const noteInput = document.getElementById('input-followup-note');
     if (noteInput) noteInput.value = '';
 
@@ -1522,23 +1529,28 @@ function closeAddPhotoModal() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    const handleFollowupChange = (file) => {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            selectedFollowUpPhotoDataUrl = evt.target.result;
+            const preview = document.getElementById('followup-photo-preview');
+            const img = document.getElementById('followup-preview-img');
+            if (img && preview) {
+                img.src = selectedFollowUpPhotoDataUrl;
+                preview.classList.remove('hidden');
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+
     const followupPhotoInput = document.getElementById('input-followup-photo');
     if (followupPhotoInput) {
-        followupPhotoInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (evt) => {
-                selectedFollowUpPhotoDataUrl = evt.target.result;
-                const preview = document.getElementById('followup-photo-preview');
-                const img = document.getElementById('followup-preview-img');
-                if (img && preview) {
-                    img.src = selectedFollowUpPhotoDataUrl;
-                    preview.classList.remove('hidden');
-                }
-            };
-            reader.readAsDataURL(file);
-        });
+        followupPhotoInput.addEventListener('change', (e) => handleFollowupChange(e.target.files[0]));
+    }
+    const followupCameraInput = document.getElementById('input-followup-camera');
+    if (followupCameraInput) {
+        followupCameraInput.addEventListener('change', (e) => handleFollowupChange(e.target.files[0]));
     }
 });
 
@@ -1921,29 +1933,34 @@ function setupEventListeners() {
         });
     }
 
-    // Manejo de carga de archivos de foto
+    // Manejo de carga de archivos de foto (Cámara directa y Galería)
+    const handleRegistrationFiles = (files) => {
+        state.selectedPhotos = [];
+        const container = document.getElementById('photo-preview-container');
+        if (container) container.innerHTML = '';
+
+        files.slice(0, 3).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const imgUrl = event.target.result;
+                state.selectedPhotos.push(imgUrl);
+                
+                const img = document.createElement('img');
+                img.src = imgUrl;
+                img.className = 'w-24 h-24 object-cover rounded-lg border-2 border-emerald-500 shadow';
+                if (container) container.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+        });
+    };
+
     const photoInput = document.getElementById('input-photos');
     if (photoInput) {
-        photoInput.addEventListener('change', (e) => {
-            const files = Array.from(e.target.files);
-            state.selectedPhotos = [];
-            const container = document.getElementById('photo-preview-container');
-            container.innerHTML = '';
-
-            files.slice(0, 3).forEach(file => {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const imgUrl = event.target.result;
-                    state.selectedPhotos.push(imgUrl);
-                    
-                    const img = document.createElement('img');
-                    img.src = imgUrl;
-                    img.className = 'w-24 h-24 object-cover rounded-lg border-2 border-emerald-500 shadow';
-                    container.appendChild(img);
-                };
-                reader.readAsDataURL(file);
-            });
-        });
+        photoInput.addEventListener('change', (e) => handleRegistrationFiles(Array.from(e.target.files)));
+    }
+    const cameraInput = document.getElementById('input-camera');
+    if (cameraInput) {
+        cameraInput.addEventListener('change', (e) => handleRegistrationFiles(Array.from(e.target.files)));
     }
 
     // Remover cualquier widget de Netlify si existe

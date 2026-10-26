@@ -79,7 +79,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- Custom Stylesheet -->
-    <link rel="stylesheet" href="css/styles.css?v=4.6">
+    <link rel="stylesheet" href="css/styles.css?v=4.7">
 </head>
 <body class="bg-canvas text-ink font-body antialiased flex flex-col min-h-screen">
 
@@ -496,11 +496,27 @@
 
                     <!-- Paso 4: Fotografía Inicial -->
                     <div class="space-y-3 pt-2 border-t border-borderWarm">
-                        <h3 class="text-xs font-bold text-canopy uppercase tracking-wider">4. Fotografía de la Siembra</h3>
-                        <div class="file-dropzone p-6 rounded-2xl text-center cursor-pointer" onclick="document.getElementById('input-photos').click()">
-                            <svg class="w-8 h-8 text-ink-muted/60 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                            <p class="text-xs font-semibold text-canopy">Toca aquí para seleccionar o tomar una foto</p>
-                            <p class="text-[11px] text-ink-muted mt-0.5">Formatos JPG, PNG (máx. 10MB)</p>
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xs font-bold text-canopy uppercase tracking-wider">4. Fotografía de la Siembra</h3>
+                            <span class="text-[11px] text-ink-muted">Foto del plantón</span>
+                        </div>
+                        <div class="file-dropzone p-5 sm:p-6 rounded-2xl text-center space-y-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md mx-auto">
+                                <!-- Botón Cámara Directa -->
+                                <button type="button" onclick="document.getElementById('input-camera').click()" class="py-3 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer">
+                                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                    <span>Tomar con Cámara</span>
+                                </button>
+
+                                <!-- Botón Galería -->
+                                <button type="button" onclick="document.getElementById('input-photos').click()" class="py-3 px-4 bg-surface hover:bg-canvas text-canopy active:scale-95 border border-borderWarm rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer">
+                                    <svg class="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    <span>Elegir de Galería</span>
+                                </button>
+                            </div>
+                            <p class="text-[11px] text-ink-muted">Formatos JPG, PNG (máx. 10MB)</p>
+                            <!-- Inputs ocultos para Cámara y Galería -->
+                            <input type="file" id="input-camera" accept="image/*" capture="environment" class="hidden">
                             <input type="file" id="input-photos" accept="image/*" class="hidden">
                         </div>
                         <div id="photo-preview-container" class="flex flex-wrap gap-2 pt-2"></div>
@@ -690,8 +706,19 @@
             <form onsubmit="handleFollowUpPhotoSubmit(event)" class="space-y-3">
                 <input type="hidden" id="input-followup-tree-code">
                 <div>
-                    <label class="block text-xs font-semibold text-ink-muted mb-1">Seleccionar Fotografía *</label>
-                    <input type="file" id="input-followup-photo" accept="image/*" required class="w-full p-2.5 bg-canvas border border-borderWarm rounded-xl text-xs">
+                    <label class="block text-xs font-semibold text-ink-muted mb-2">Seleccionar Fotografía *</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" onclick="document.getElementById('input-followup-camera').click()" class="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            Tomar Foto
+                        </button>
+                        <button type="button" onclick="document.getElementById('input-followup-photo').click()" class="py-2.5 px-3 bg-surface text-canopy border border-borderWarm rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-canvas transition-colors cursor-pointer">
+                            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            De Galería
+                        </button>
+                    </div>
+                    <input type="file" id="input-followup-camera" accept="image/*" capture="environment" class="hidden">
+                    <input type="file" id="input-followup-photo" accept="image/*" class="hidden">
                 </div>
 
                 <div id="followup-photo-preview" class="hidden">
@@ -868,7 +895,7 @@
 
     <!-- Scripts de la Aplicación -->
     <script src="js/supabase-config.js"></script>
-    <script src="js/app.js?v=4.6"></script>
+    <script src="js/app.js?v=4.7"></script>
     <script>
         function toggleMobileMenu() {
             const menu = document.getElementById('mobile-menu');
