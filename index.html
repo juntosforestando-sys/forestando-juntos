@@ -17,13 +17,15 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 
-    <!-- Detección Temprana de Modo Oscuro -->
+    <!-- Detección Temprana de Modo Oscuro (Por defecto Claro salvo que el usuario elija Oscuro) -->
     <script>
         (function() {
             try {
                 var s = localStorage.getItem('fj_theme');
-                if (s === 'dark' || (!s && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                if (s === 'dark') {
                     document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
                 }
             } catch(e) {}
         })();
@@ -77,7 +79,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- Custom Stylesheet -->
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=4.6">
 </head>
 <body class="bg-canvas text-ink font-body antialiased flex flex-col min-h-screen">
 
@@ -866,7 +868,7 @@
 
     <!-- Scripts de la Aplicación -->
     <script src="js/supabase-config.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/app.js?v=4.6"></script>
     <script>
         function toggleMobileMenu() {
             const menu = document.getElementById('mobile-menu');

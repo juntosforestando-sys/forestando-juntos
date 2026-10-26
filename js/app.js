@@ -205,7 +205,16 @@ function saveSpeciesToStorage() {
 // Control de Modo Claro / Modo Oscuro
 // ==========================================
 function initTheme() {
-    const isDark = document.documentElement.classList.contains('dark');
+    let saved = null;
+    try {
+        saved = localStorage.getItem('fj_theme');
+    } catch(e) {}
+    const isDark = (saved === 'dark');
+    if (isDark) {
+        document.documentElement.classList.add('dark');
+    } else {
+        document.documentElement.classList.remove('dark');
+    }
     updateThemeIcons(isDark);
 }
 

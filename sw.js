@@ -1,10 +1,10 @@
 // Service Worker para soporte 100% Offline en campo (Forestando Juntos)
-const CACHE_NAME = 'forestando-juntos-v4.5-theme';
+const CACHE_NAME = 'forestando-juntos-v4.6-theme';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
-    './css/styles.css',
-    './js/app.js',
+    './css/styles.css?v=4.6',
+    './js/app.js?v=4.6',
     './js/supabase-config.js',
     './img/logo.jpg',
     './netlify.toml',
