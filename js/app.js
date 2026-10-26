@@ -194,11 +194,82 @@ function fallbackLocalSpecies() {
 }
 
 function saveTreesToStorage() {
-    localStorage.setItem('fj_trees', JSON.stringify(state.trees));
+    try {
+        localStorage.setItem('fj_trees', JSON.stringify(state.trees));
+    } catch (e) {
+        console.warn('Límite de cuota de localStorage alcanzado, guardando versión ligera:', e);
+        try {
+            const lightweight = state.trees.map(t => {
+                const clone = { ...t };
+                if (clone.primary_photo_url && clone.primary_photo_url.startsWith('data:image')) {
+                    clone.primary_photo_url = 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80';
+                }
+                if (clone.tree_photos) {
+                    clone.tree_photos = clone.tree_photos.map(p => ({
+                        ...p,
+                        url: (p.url && p.url.startsWith('data:image')) ? 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80' : p.url
+                    }));
+                }
+                return clone;
+            });
+            localStorage.setItem('fj_trees', JSON.stringify(lightweight));
+        } catch (err2) {
+            console.warn('No se pudo guardar la lista de árboles en almacenamiento local:', err2);
+        }
+    }
 }
 
 function saveSpeciesToStorage() {
-    localStorage.setItem('fj_species', JSON.stringify(state.speciesList));
+    try {
+        localStorage.setItem('fj_species', JSON.stringify(state.speciesList));
+    } catch (e) {
+        console.warn('Error al guardar especies localmente:', e);
+    }
+}
+
+// Compresor de imágenes en cliente (reduce fotos de cámara de 10MB a ~150KB al instante)
+function compressImage(file, maxDimension = 1200, quality = 0.75) {
+    return new Promise((resolve, reject) => {
+        if (!file || !file.type || !file.type.match(/image.*/)) {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxDimension || height > maxDimension) {
+                    if (width > height) {
+                        height = Math.round((height * maxDimension) / width);
+                        width = maxDimension;
+                    } else {
+                        width = Math.round((width * maxDimension) / height);
+                        height = maxDimension;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                resolve(compressedDataUrl);
+            };
+            img.onerror = () => resolve(e.target.result);
+            img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
 }
 
 // ==========================================
@@ -1529,19 +1600,19 @@ function closeAddPhotoModal() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    const handleFollowupChange = (file) => {
+    const handleFollowupChange = async (file) => {
         if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-            selectedFollowUpPhotoDataUrl = evt.target.result;
+        try {
             const preview = document.getElementById('followup-photo-preview');
             const img = document.getElementById('followup-preview-img');
+            selectedFollowUpPhotoDataUrl = await compressImage(file, 1200, 0.75);
             if (img && preview) {
                 img.src = selectedFollowUpPhotoDataUrl;
                 preview.classList.remove('hidden');
             }
-        };
-        reader.readAsDataURL(file);
+        } catch (err) {
+            console.warn('Error comprimiendo foto de seguimiento:', err);
+        }
     };
 
     const followupPhotoInput = document.getElementById('input-followup-photo');
@@ -1933,25 +2004,30 @@ function setupEventListeners() {
         });
     }
 
-    // Manejo de carga de archivos de foto (Cámara directa y Galería)
-    const handleRegistrationFiles = (files) => {
+    // Manejo de carga de archivos de foto (Cámara directa y Galería con compresión automática)
+    const handleRegistrationFiles = async (files) => {
         state.selectedPhotos = [];
         const container = document.getElementById('photo-preview-container');
-        if (container) container.innerHTML = '';
+        if (container) container.innerHTML = '<span class="text-xs text-emerald-600 font-semibold animate-pulse py-1">Optimizando foto...</span>';
 
-        files.slice(0, 3).forEach(file => {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const imgUrl = event.target.result;
+        for (const file of files.slice(0, 3)) {
+            try {
+                const imgUrl = await compressImage(file, 1200, 0.75);
                 state.selectedPhotos.push(imgUrl);
-                
+            } catch (err) {
+                console.warn('Error al procesar foto:', err);
+            }
+        }
+
+        if (container) {
+            container.innerHTML = '';
+            state.selectedPhotos.forEach(imgUrl => {
                 const img = document.createElement('img');
                 img.src = imgUrl;
                 img.className = 'w-24 h-24 object-cover rounded-lg border-2 border-emerald-500 shadow';
-                if (container) container.appendChild(img);
-            };
-            reader.readAsDataURL(file);
-        });
+                container.appendChild(img);
+            });
+        }
     };
 
     const photoInput = document.getElementById('input-photos');

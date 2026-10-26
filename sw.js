@@ -1,10 +1,10 @@
 // Service Worker para soporte 100% Offline en campo (Forestando Juntos)
-const CACHE_NAME = 'forestando-juntos-v4.7-camera';
+const CACHE_NAME = 'forestando-juntos-v4.8-photo-opt';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
-    './css/styles.css?v=4.7',
-    './js/app.js?v=4.7',
+    './css/styles.css?v=4.8',
+    './js/app.js?v=4.8',
     './js/supabase-config.js',
     './img/logo.jpg',
     './netlify.toml',
