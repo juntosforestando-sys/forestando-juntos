@@ -10,6 +10,7 @@ let state = {
     map: null,
     formMap: null,
     activeMarkers: [],
+    markerClusterGroup: null,
     currentFormCoords: { lat: 8.11, lng: -80.97 },
     userMarker: null,
     isAdminLoggedIn: sessionStorage.getItem('fj_admin_logged') === 'true',
@@ -718,10 +719,39 @@ function initPublicMap() {
 function renderMapMarkers() {
     if (!state.map) return;
 
-    // Limpiar marcadores existentes anteriores
+    // Limpiar marcadores y clusters existentes anteriores
+    if (state.markerClusterGroup) {
+        state.markerClusterGroup.clearLayers();
+    }
     if (state.activeMarkers && state.activeMarkers.length > 0) {
         state.activeMarkers.forEach(m => state.map.removeLayer(m));
         state.activeMarkers = [];
+    }
+
+    // Inicializar grupo de clusters botánico inteligente con soporte de abanico (Spiderfy)
+    if (!state.markerClusterGroup && typeof L.markerClusterGroup === 'function') {
+        state.markerClusterGroup = L.markerClusterGroup({
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            spiderfyOnMaxZoom: true,
+            maxClusterRadius: 40,
+            spiderLegPolylineOptions: {
+                weight: 2.5,
+                color: '#059669',
+                opacity: 0.85,
+                dashArray: '4, 4'
+            },
+            iconCreateFunction: function (cluster) {
+                const count = cluster.getChildCount();
+                return L.divIcon({
+                    html: `<div class="w-10 h-10 rounded-full bg-emerald-600 text-white font-extrabold flex items-center justify-center text-xs shadow-lg border-2 border-white transform hover:scale-110 transition-transform"><span>${count}</span></div>`,
+                    className: 'custom-marker-cluster',
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 20]
+                });
+            }
+        });
+        state.map.addLayer(state.markerClusterGroup);
     }
 
     // Mostrar árboles aprobados (verdes) y árboles dados de baja (rojos)
@@ -806,13 +836,21 @@ function renderMapMarkers() {
             });
         }
 
-        marker.addTo(state.map);
+        if (state.markerClusterGroup) {
+            state.markerClusterGroup.addLayer(marker);
+        } else {
+            marker.addTo(state.map);
+        }
         state.activeMarkers.push(marker);
         bounds.push([t.latitude, t.longitude]);
     });
 
     if (bounds.length > 0) {
-        state.map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50], maxZoom: 15 });
+        if (state.markerClusterGroup && typeof state.markerClusterGroup.getBounds === 'function' && state.markerClusterGroup.getBounds().isValid()) {
+            state.map.fitBounds(state.markerClusterGroup.getBounds(), { padding: [50, 50], maxZoom: 15 });
+        } else {
+            state.map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50], maxZoom: 15 });
+        }
     }
 
     const counterEl = document.getElementById('map-filtered-count');

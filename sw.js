@@ -1,16 +1,19 @@
 // Service Worker para soporte 100% Offline en campo (Forestando Juntos)
-const CACHE_NAME = 'forestando-juntos-v4.9-cert-name';
+const CACHE_NAME = 'forestando-juntos-v5.0-cluster';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
-    './css/styles.css?v=4.9',
-    './js/app.js?v=4.9',
+    './css/styles.css?v=5.0',
+    './js/app.js?v=5.0',
     './js/supabase-config.js',
     './img/logo.jpg',
     './netlify.toml',
     'https://cdn.tailwindcss.com',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+    'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',
+    'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css',
+    'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js',
     'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
     'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
 ];

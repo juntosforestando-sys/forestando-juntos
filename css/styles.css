@@ -325,3 +325,36 @@ html.dark #certificate-card .bg-canvas\/70 {
 html.dark #certificate-card .border-borderWarm {
   border-color: #E8E3D7 !important;
 }
+
+/* ==========================================================================
+   ESTILOS DE AGRUPAMIENTO BOTÁNICO (MARKERCLUSTER & SPIDERFY)
+   ========================================================================== */
+.custom-marker-cluster {
+  background: transparent !important;
+  border: none !important;
+}
+
+.custom-marker-cluster div {
+  background-color: #059669;
+  color: #FFFFFF;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  box-shadow: 0 4px 15px rgba(5, 150, 105, 0.4);
+}
+
+.leaflet-cluster-spider-leg {
+  stroke: #059669 !important;
+  stroke-width: 2.5px !important;
+  stroke-dasharray: 4, 4;
+  opacity: 0.85 !important;
+}
+
+html.dark .custom-marker-cluster div {
+  background-color: #059669;
+  border-color: #14221D;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+}
+
+html.dark .leaflet-cluster-spider-leg {
+  stroke: #34D399 !important;
+}
