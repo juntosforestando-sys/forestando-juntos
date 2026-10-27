@@ -1483,7 +1483,8 @@ function openCertificateModal(code) {
     currentCertCode = tree.code || 'ARB-000000';
     
     const planterEl = document.getElementById('cert-planter-name');
-    if (planterEl) planterEl.textContent = tree.public_name || tree.planter_name || 'Sembrador Voluntario';
+    // En el certificado oficial siempre debe figurar el Nombre Completo del sembrador
+    if (planterEl) planterEl.textContent = tree.planter_name || tree.public_name || 'Sembrador Voluntario';
 
     const planterTreeCount = state.trees.filter(t => (t.public_name && t.public_name === (tree.public_name || tree.planter_name)) || (t.planter_name && t.planter_name === (tree.planter_name || tree.public_name))).length;
     const planterBadge = getPlanterBadge(planterTreeCount);
