@@ -1,10 +1,10 @@
 // Service Worker para soporte 100% Offline en campo (Forestando Juntos)
-const CACHE_NAME = 'forestando-juntos-v5.0-cluster';
+const CACHE_NAME = 'forestando-juntos-v5.1-stealth-admin';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
-    './css/styles.css?v=5.0',
-    './js/app.js?v=5.0',
+    './css/styles.css?v=5.1',
+    './js/app.js?v=5.1',
     './js/supabase-config.js',
     './img/logo.jpg',
     './netlify.toml',
