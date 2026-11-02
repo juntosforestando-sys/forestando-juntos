@@ -1160,10 +1160,36 @@ async function syncOfflineTrees() {
     }
 }
 
-function sendWhatsAppConfirmation() {
+// Formatear y normalizar número de teléfono para WhatsApp con código de país Panamá (507)
+function formatWhatsAppPhone(phone) {
+    if (!phone) return '';
+    let str = String(phone).trim();
+    let digits = str.replace(/\D/g, '');
+    if (!digits) return '';
+
+    // Si empieza por 00 (marcado internacional), removerlo
+    if (digits.startsWith('00')) {
+        digits = digits.slice(2);
+    }
+
+    // Si tiene 7 u 8 dígitos (formato estándar Panamá ej. 69846820 o fijo), anteponer prefijo 507
+    if (digits.length === 8 || digits.length === 7) {
+        return '507' + digits;
+    }
+
+    // Si ya empieza con 507 y tiene 10 u 11 dígitos, dejarlo tal cual
+    if ((digits.length === 11 || digits.length === 10) && digits.startsWith('507')) {
+        return digits;
+    }
+
+    // Números internacionales con su propio código de país
+    return digits;
+}
+
+function sendWhatsAppConfirmation(isManual = false) {
     if (!lastSubmittedTree) return;
 
-    const cleanPhone = (lastSubmittedTree.phone || '').replace(/\D/g, '');
+    const formattedPhone = formatWhatsAppPhone(lastSubmittedTree.phone);
     const message = encodeURIComponent(
         `*Hola ${lastSubmittedTree.planter_name}*\n\n` +
         `Confirmamos que tu siembra ha sido registrada en la plataforma *Forestando Juntos*:\n\n` +
@@ -1176,21 +1202,26 @@ function sendWhatsAppConfirmation() {
         `Forestando Juntos Panamá`
     );
 
-    const waUrl = cleanPhone 
-        ? `https://wa.me/${cleanPhone}?text=${message}`
+    const waUrl = formattedPhone 
+        ? `https://wa.me/${formattedPhone}?text=${message}`
         : `https://api.whatsapp.com/send?text=${message}`;
 
-    // Redireccionar directamente para asegurar apertura automática en celulares sin bloqueo de emergentes
-    setTimeout(() => {
-        window.location.href = waUrl;
-    }, 1200);
+    if (isManual) {
+        // Clic directo del usuario en el botón del modal: abrir de inmediato
+        window.open(waUrl, '_blank');
+    } else {
+        // Apertura tras registro: dar tiempo para apreciar el código y PIN en pantalla
+        setTimeout(() => {
+            window.location.href = waUrl;
+        }, 1500);
+    }
 }
 
 function sendAdminNotificationWhatsApp() {
     if (!lastSubmittedTree) return;
 
     const adminPhone = (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG.adminPhone)
-        ? SUPABASE_CONFIG.adminPhone.replace(/\D/g, '')
+        ? formatWhatsAppPhone(SUPABASE_CONFIG.adminPhone)
         : '';
 
     const message = encodeURIComponent(
