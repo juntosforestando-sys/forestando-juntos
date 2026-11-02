@@ -335,8 +335,9 @@ function updateThemeIcons(isDark) {
 
 // Control del Enrutador (Vistas)
 function showView(viewId, params = {}) {
-    // Normalizar alias de registro y estadísticas
+    // Normalizar alias de registro, estadísticas y manual
     if (viewId === 'registrar') viewId = 'registro';
+    if (viewId === 'guia' || viewId === 'manual-usuario') viewId = 'manual';
     
     if (viewId === 'estadisticas' || viewId === 'ranking') {
         viewId = 'home';
@@ -364,7 +365,7 @@ function showView(viewId, params = {}) {
     }
 
     // Actualizar estado visual de pestañas de navegación
-    const navMap = { home: 'nav-home', mapa: 'nav-mapa', estadisticas: 'nav-estadisticas', registro: 'nav-registro', admin: 'nav-admin' };
+    const navMap = { home: 'nav-home', mapa: 'nav-mapa', estadisticas: 'nav-estadisticas', manual: 'nav-manual', registro: 'nav-registro', admin: 'nav-admin' };
     Object.keys(navMap).forEach(key => {
         const navEl = document.getElementById(navMap[key]);
         if (!navEl) return;
@@ -438,6 +439,28 @@ function handleHashRouting() {
     }
 
     showView(view || 'home', params);
+}
+
+// Control de pestañas interactivas del Manual de Usuario
+function switchManualTab(tabId) {
+    document.querySelectorAll('.manual-tab-btn').forEach(btn => {
+        btn.classList.remove('bg-emerald-600', 'text-white', 'shadow-sm');
+        btn.classList.add('bg-canvas', 'text-ink-muted', 'hover:text-canopy');
+    });
+    document.querySelectorAll('.manual-tab-content').forEach(tab => {
+        tab.classList.add('hidden');
+    });
+
+    const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+    if (activeBtn) {
+        activeBtn.classList.remove('bg-canvas', 'text-ink-muted', 'hover:text-canopy');
+        activeBtn.classList.add('bg-emerald-600', 'text-white', 'shadow-sm');
+    }
+
+    const activeContent = document.getElementById(`tab-content-${tabId}`);
+    if (activeContent) {
+        activeContent.classList.remove('hidden');
+    }
 }
 
 // Rellenar selects de especies
