@@ -81,8 +81,11 @@
     <!-- Supabase JS Client Oficial -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+    <!-- EmailJS SDK Oficial para Confirmaciones Automáticas -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
     <!-- Custom Stylesheet -->
-    <link rel="stylesheet" href="css/styles.css?v=5.1">
+    <link rel="stylesheet" href="css/styles.css?v=5.2">
 </head>
 <body class="bg-canvas text-ink font-body antialiased flex flex-col min-h-screen">
 
@@ -847,12 +850,17 @@
             </div>
 
             <p class="text-[11px] text-ink-muted leading-relaxed">
-                Hemos enviado la confirmación a tu WhatsApp. Una vez validada la siembra, se marcará activa en el mapa.
+                Hemos enviado una copia con tu código y PIN a tu <strong>correo electrónico</strong> y a tu <strong>WhatsApp</strong>. Guarda este PIN para agregar fotos o descargar tu certificado.
             </p>
 
-            <button onclick="document.getElementById('modal-success').classList.add('hidden'); showView('home')" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm transition-colors">
-                Ir al Inicio
-            </button>
+            <div class="space-y-2">
+                <button type="button" onclick="sendWhatsAppConfirmation()" class="w-full py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-xl text-xs border border-emerald-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
+                    <span>📲 Guardar / Abrir copia en WhatsApp</span>
+                </button>
+                <button onclick="document.getElementById('modal-success').classList.add('hidden'); showView('home')" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm transition-colors cursor-pointer">
+                    Ir al Inicio
+                </button>
+            </div>
         </div>
     </div>
 
@@ -891,7 +899,7 @@
 
     <!-- Scripts de la Aplicación -->
     <script src="js/supabase-config.js"></script>
-    <script src="js/app.js?v=5.1"></script>
+    <script src="js/app.js?v=5.2"></script>
     <script>
         function toggleMobileMenu() {
             const menu = document.getElementById('mobile-menu');

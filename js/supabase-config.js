@@ -7,6 +7,13 @@ const SUPABASE_CONFIG = {
     adminPassword: "Forestando2026!" // Puedes cambiar esta contraseña por la que prefieras
 };
 
+// Configuración de EmailJS para confirmaciones automáticas al sembrador
+const EMAILJS_CONFIG = {
+    serviceId: "service_50omyml",
+    templateId: "template_oc65kek",
+    publicKey: "i5KgjZeHss1pwy6k6"
+};
+
 // Dataset inicial completo con los 15 registros extraídos del Excel histórico
 const DEMO_TREES = [
     {

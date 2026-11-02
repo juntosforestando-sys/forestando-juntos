@@ -28,6 +28,16 @@ async function initApp() {
     // 0. Inicializar Tema Claro / Oscuro
     initTheme();
 
+    // 0.1 Inicializar SDK de EmailJS para confirmaciones al sembrador
+    if (typeof emailjs !== 'undefined' && typeof EMAILJS_CONFIG !== 'undefined' && EMAILJS_CONFIG.publicKey) {
+        try {
+            emailjs.init({ publicKey: EMAILJS_CONFIG.publicKey });
+            console.log('[EmailJS] SDK inicializado correctamente.');
+        } catch (e) {
+            console.warn('[EmailJS] Error inicializando SDK:', e);
+        }
+    }
+
     // 1. Cargar datos locales de inmediato (0ms de espera, interactividad inmediata)
     fallbackLocalData();
     fallbackLocalSpecies();
@@ -1051,6 +1061,9 @@ async function handleFormSubmit(e) {
             renderAdminDashboard();
         }
 
+        // Notificación por correo al sembrador con su PIN de custodia y código único
+        sendPlanterEmailNotification(newTree);
+
         // Notificación por correo al administrador
         sendAdminEmailNotification(newTree);
 
@@ -1191,6 +1204,42 @@ function sendAdminNotificationWhatsApp() {
         : `https://api.whatsapp.com/send?text=${message}`;
 
     window.open(waUrl, '_blank');
+}
+
+// Notificación automática por correo electrónico al sembrador con su PIN y Código (vía EmailJS)
+async function sendPlanterEmailNotification(tree) {
+    if (!tree || !tree.email) return;
+    if (!navigator.onLine) return;
+
+    if (typeof emailjs === 'undefined' || typeof EMAILJS_CONFIG === 'undefined') {
+        console.warn('[EmailJS] Librería o configuración no disponible.');
+        return;
+    }
+
+    try {
+        const treeUrl = `${window.location.origin}/#arbol?code=${encodeURIComponent(tree.code)}`;
+        const templateParams = {
+            to_email: tree.email,
+            to_name: tree.planter_name,
+            planter_name: tree.planter_name,
+            tree_code: tree.code,
+            pin: tree.pin || '1234',
+            species_name: tree.species_name,
+            province: tree.province,
+            planting_date: tree.planting_date,
+            tree_url: treeUrl
+        };
+
+        const response = await emailjs.send(
+            EMAILJS_CONFIG.serviceId,
+            EMAILJS_CONFIG.templateId,
+            templateParams,
+            { publicKey: EMAILJS_CONFIG.publicKey }
+        );
+        console.log('[EmailJS] Correo de confirmación y PIN enviado exitosamente al sembrador:', response.status, response.text);
+    } catch (err) {
+        console.warn('[EmailJS] Error al enviar correo de confirmación al sembrador:', err);
+    }
 }
 
 // Notificación automática por correo electrónico al administrador

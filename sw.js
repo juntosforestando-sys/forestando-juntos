@@ -1,10 +1,10 @@
 // Service Worker para soporte 100% Offline en campo (Forestando Juntos)
-const CACHE_NAME = 'forestando-juntos-v5.1-stealth-admin';
+const CACHE_NAME = 'forestando-juntos-v5.2-emailjs';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
-    './css/styles.css?v=5.1',
-    './js/app.js?v=5.1',
+    './css/styles.css?v=5.2',
+    './js/app.js?v=5.2',
     './js/supabase-config.js',
     './img/logo.jpg',
     './netlify.toml',
@@ -15,7 +15,8 @@ const ASSETS_TO_CACHE = [
     'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css',
     'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js',
     'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
-    'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
+    'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
+    'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js'
 ];
 
 self.addEventListener('install', (event) => {
@@ -44,8 +45,8 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-    // Para llamadas a API Supabase, ir a la red directamente
-    if (event.request.url.includes('supabase.co')) {
+    // Para llamadas a API Supabase o EmailJS, ir a la red directamente
+    if (event.request.url.includes('supabase.co') || event.request.url.includes('emailjs.com')) {
         return;
     }
 
