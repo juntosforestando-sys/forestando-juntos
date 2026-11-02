@@ -1,10 +1,10 @@
 // Service Worker para soporte 100% Offline en campo (Forestando Juntos)
-const CACHE_NAME = 'forestando-juntos-v5.2-emailjs';
+const CACHE_NAME = 'forestando-juntos-v5.3-email-fix';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
-    './css/styles.css?v=5.2',
-    './js/app.js?v=5.2',
+    './css/styles.css?v=5.3',
+    './js/app.js?v=5.3',
     './js/supabase-config.js',
     './img/logo.jpg',
     './netlify.toml',

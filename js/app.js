@@ -411,6 +411,13 @@ function showView(viewId, params = {}) {
         renderTreeProfile(params.code);
     } else if (viewId === 'admin') {
         renderAdminDashboard();
+        // Cargar datos frescos en vivo desde Supabase Cloud para mostrar pendientes al instante
+        const sb = getSupabaseClient();
+        if (sb && navigator.onLine) {
+            loadInitialData().then(() => {
+                renderAdminDashboard();
+            }).catch(err => console.warn('Error al refrescar datos en admin:', err));
+        }
     }
 }
 
@@ -1220,8 +1227,14 @@ async function sendPlanterEmailNotification(tree) {
         const treeUrl = `${window.location.origin}/#arbol?code=${encodeURIComponent(tree.code)}`;
         const templateParams = {
             to_email: tree.email,
+            email: tree.email,
+            user_email: tree.email,
+            recipient: tree.email,
+            to: tree.email,
+            reply_to: tree.email,
             to_name: tree.planter_name,
             planter_name: tree.planter_name,
+            name: tree.planter_name,
             tree_code: tree.code,
             pin: tree.pin || '1234',
             species_name: tree.species_name,
