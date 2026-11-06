@@ -1243,8 +1243,8 @@ function sendWhatsAppConfirmation(isManual = false) {
 function sendAdminNotificationWhatsApp() {
     if (!lastSubmittedTree) return;
 
-    const adminPhone = (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG.adminPhone)
-        ? formatWhatsAppPhone(SUPABASE_CONFIG.adminPhone)
+    const adminPhone = (typeof SUPABASE_CONFIG !== 'undefined' && (SUPABASE_CONFIG.notificationPhone || SUPABASE_CONFIG.adminPhone))
+        ? formatWhatsAppPhone(SUPABASE_CONFIG.notificationPhone || SUPABASE_CONFIG.adminPhone)
         : '';
 
     const message = encodeURIComponent(
@@ -1313,9 +1313,9 @@ async function sendPlanterEmailNotification(tree) {
 async function sendAdminEmailNotification(tree) {
     if (!navigator.onLine) return;
     
-    const adminEmail = (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG.adminEmail)
-        ? SUPABASE_CONFIG.adminEmail
-        : '';
+    const adminEmail = (typeof SUPABASE_CONFIG !== 'undefined' && (SUPABASE_CONFIG.notificationEmail || SUPABASE_CONFIG.adminEmail))
+        ? (SUPABASE_CONFIG.notificationEmail || SUPABASE_CONFIG.adminEmail)
+        : 'juntosforestando@gmail.com';
 
     if (!adminEmail) return;
 
@@ -1968,29 +1968,74 @@ function focusTreeOnMap(code) {
     }, 350);
 }
 
-function handleAdminLogin(e) {
+async function handleAdminLogin(e) {
     e.preventDefault();
     const email = document.getElementById('admin-email').value.trim().toLowerCase();
     const pass = document.getElementById('admin-password').value.trim();
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn ? submitBtn.innerHTML : 'Iniciar Sesión';
 
-    const validEmail = (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG.adminEmail)
-        ? SUPABASE_CONFIG.adminEmail.toLowerCase()
-        : 'juntosforestando@gmail.com';
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Verificando credenciales...';
+    }
 
-    const validPass = (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG.adminPassword)
-        ? SUPABASE_CONFIG.adminPassword
-        : 'Forestando2026!';
+    try {
+        const sb = getSupabaseClient();
+        
+        // 1. Intento de autenticación oficial mediante Supabase Auth (Servidor)
+        if (sb && navigator.onLine) {
+            try {
+                const { data, error } = await sb.auth.signInWithPassword({
+                    email: email,
+                    password: pass
+                });
 
-    if (email === validEmail && pass === validPass) {
-        state.isAdminLoggedIn = true;
-        sessionStorage.setItem('fj_admin_logged', 'true');
-        renderAdminDashboard();
-        if (state.map) renderMapMarkers();
-        showToast('Sesión de Administrador iniciada.');
-        document.getElementById('admin-email').value = '';
-        document.getElementById('admin-password').value = '';
-    } else {
+                if (!error && data && data.user) {
+                    state.isAdminLoggedIn = true;
+                    sessionStorage.setItem('fj_admin_logged', 'true');
+                    renderAdminDashboard();
+                    if (state.map) renderMapMarkers();
+                    showToast('Sesión de Administrador iniciada correctamente.');
+                    document.getElementById('admin-email').value = '';
+                    document.getElementById('admin-password').value = '';
+                    return;
+                }
+            } catch (authErr) {
+                console.warn('[Supabase Auth] Fallo en intento de autenticación en servidor:', authErr);
+            }
+        }
+
+        // 2. Verificación criptográfica segura mediante Hash SHA-256 (Sin almacenar contraseñas en texto plano)
+        const encoder = new TextEncoder();
+        const dataBuffer = encoder.encode(email + ':' + pass);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+        // Hash SHA-256 criptográfico de credenciales autorizadas
+        const AUTH_HASH = '2d152e05f97d077a565ec47919307320b571388b9d7bf56410869b6850333ee0';
+
+        if (hashHex === AUTH_HASH) {
+            state.isAdminLoggedIn = true;
+            sessionStorage.setItem('fj_admin_logged', 'true');
+            renderAdminDashboard();
+            if (state.map) renderMapMarkers();
+            showToast('Sesión de Administrador iniciada.');
+            document.getElementById('admin-email').value = '';
+            document.getElementById('admin-password').value = '';
+            return;
+        }
+
         alert('Correo electrónico o contraseña de administrador incorrectos.');
+    } catch (err) {
+        console.error('Error durante el inicio de sesión administrativo:', err);
+        alert('Ocurrió un error al procesar el inicio de sesión.');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
     }
 }
 

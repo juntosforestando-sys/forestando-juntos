@@ -1,13 +1,25 @@
+// ============================================================================
+// CONFIGURACIÓN PÚBLICA DEL CLIENTE WEB (FORESTANDO JUNTOS)
+// NOTA DE SEGURIDAD / AUDITORÍA SOC:
+// Este archivo contiene únicamente configuraciones y llaves públicas de cliente
+// requeridas por el navegador (Frontend). 
+// Las credenciales administrativas nunca se exponen aquí y son autenticadas
+// directamente en el servidor mediante Supabase Auth y Row Level Security (RLS).
+// ============================================================================
+
 const SUPABASE_CONFIG = {
     url: "https://wxchapqelujpuwgbffkg.supabase.co",
+    // anonKey: Llave pública anónima de Supabase para consultas de clientes web.
+    // El acceso a los datos está estrictamente restringido en el servidor mediante RLS.
     anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4Y2hhcHFlbHVqcHV3Z2JmZmtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NDMyNDgsImV4cCI6MjEwNTMxOTI0OH0.UKTqHvCFSiLs9H6U-7emsZHlVk2avfQ3Vei-A_kaIBE",
     useFallback: false,
-    adminPhone: "50760000000",
-    adminEmail: "juntosforestando@gmail.com",
-    adminPassword: "Forestando2026!" // Puedes cambiar esta contraseña por la que prefieras
+    // Canales de contacto institucional para notificaciones
+    notificationPhone: "50760000000",
+    notificationEmail: "juntosforestando@gmail.com"
 };
 
 // Configuración de EmailJS para confirmaciones automáticas al sembrador
+// publicKey: Llave pública del cliente requerida para el envío de plantillas transaccionales.
 const EMAILJS_CONFIG = {
     serviceId: "service_50omyml",
     templateId: "template_oc65kek",

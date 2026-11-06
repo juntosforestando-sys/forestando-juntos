@@ -1,11 +1,11 @@
 // Service Worker para soporte 100% Offline en campo (Forestando Juntos)
-const CACHE_NAME = 'forestando-juntos-v5.5-manual-usuario';
+const CACHE_NAME = 'forestando-juntos-v5.6-security-patch';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
-    './css/styles.css?v=5.5',
-    './js/app.js?v=5.5',
-    './js/supabase-config.js',
+    './css/styles.css?v=5.6',
+    './js/app.js?v=5.6',
+    './js/supabase-config.js?v=5.6',
     './img/logo.jpg',
     './netlify.toml',
     'https://cdn.tailwindcss.com',
