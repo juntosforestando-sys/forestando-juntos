@@ -832,15 +832,15 @@ function renderMapMarkers() {
             <div class="p-3.5 text-left space-y-2">
                 <img src="${t.primary_photo_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80'}" 
                      onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80';"
-                     class="w-full h-32 object-cover rounded-xl" alt="${t.species_name}">
+                     class="w-full h-32 object-cover rounded-xl" alt="${escapeHTML(t.species_name)}">
                 <div>
                     ${badgeHtml}
                     ${state.isAdminLoggedIn ? '<span class="inline-block text-[10px] font-semibold px-2 py-0.5 bg-ochre-soft text-ochre rounded-md ml-1">Arrastrable</span>' : ''}
-                    <h4 class="font-heading font-bold text-canopy text-base leading-tight">${t.species_name}</h4>
-                    <p class="text-xs text-ink-muted">Sembrado por: <strong class="text-canopy">${t.public_name}</strong></p>
-                    <p class="text-[11px] text-ink-muted mt-0.5">${t.location_description || t.province}</p>
+                    <h4 class="font-heading font-bold text-canopy text-base leading-tight">${escapeHTML(t.species_name)}</h4>
+                    <p class="text-xs text-ink-muted">Sembrado por: <strong class="text-canopy">${escapeHTML(t.public_name)}</strong></p>
+                    <p class="text-[11px] text-ink-muted mt-0.5">${escapeHTML(t.location_description || t.province)}</p>
                 </div>
-                <button onclick="showView('arbol', {code: '${t.code}'})" class="w-full text-center py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm">
+                <button onclick="showView('arbol', {code: '${escapeHTML(t.code)}'})" class="w-full text-center py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm cursor-pointer">
                     Ver Ficha del Árbol
                 </button>
             </div>
@@ -1183,6 +1183,17 @@ async function syncOfflineTrees() {
     }
 }
 
+// Sanitización contra Cross-Site Scripting (XSS)
+function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // Formatear y normalizar número de teléfono para WhatsApp con código de país Panamá (507)
 function formatWhatsAppPhone(phone) {
     if (!phone) return '';
@@ -1378,15 +1389,15 @@ function renderTreeProfile(code) {
             <div class="relative h-72 sm:h-96 w-full bg-canopy">
                 <img id="tree-profile-main-img" src="${tree.primary_photo_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80'}" 
                      onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80';"
-                     class="w-full h-full object-cover opacity-90 transition-all duration-300" alt="${tree.species_name}">
+                     class="w-full h-full object-cover opacity-90 transition-all duration-300" alt="${escapeHTML(tree.species_name)}">
                 <div class="absolute top-4 left-4">
                     <span class="px-4 py-1.5 bg-canopy/90 backdrop-blur-md text-white font-bold text-xs rounded-xl shadow-md border border-white/10 font-mono">
-                        ${tree.code}
+                        ${escapeHTML(tree.code)}
                     </span>
                 </div>
                 <div class="absolute bottom-4 left-4 right-4 text-white">
-                    <h1 class="font-heading text-3xl sm:text-4xl font-extrabold shadow-sm">${tree.species_name}</h1>
-                    <p class="text-emerald-700 text-sm font-semibold mt-0.5">${tree.province}${tree.location_description ? ' • ' + tree.location_description : ''}</p>
+                    <h1 class="font-heading text-3xl sm:text-4xl font-extrabold shadow-sm">${escapeHTML(tree.species_name)}</h1>
+                    <p class="text-emerald-700 text-sm font-semibold mt-0.5">${escapeHTML(tree.province)}${tree.location_description ? ' • ' + escapeHTML(tree.location_description) : ''}</p>
                 </div>
             </div>
 
@@ -1395,17 +1406,17 @@ function renderTreeProfile(code) {
                     <div class="bg-canvas p-4 rounded-2xl border border-borderWarm/80 flex flex-col justify-between">
                         <div>
                             <p class="text-[10px] text-ink-muted font-bold uppercase tracking-wider">Sembrado por</p>
-                            <p class="text-base font-bold text-canopy">${tree.public_name}</p>
+                            <p class="text-base font-bold text-canopy">${escapeHTML(tree.public_name)}</p>
                         </div>
                         <div class="mt-2">
-                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${planterBadge.badgeClass}" title="${planterBadge.desc}">
-                                ${planterBadge.title} (${planterTreeCount} árbol${planterTreeCount > 1 ? 'es' : ''})
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${planterBadge.badgeClass}" title="${escapeHTML(planterBadge.desc)}">
+                                ${escapeHTML(planterBadge.title)} (${planterTreeCount} árbol${planterTreeCount > 1 ? 'es' : ''})
                             </span>
                         </div>
                     </div>
                     <div class="bg-canvas p-4 rounded-2xl border border-borderWarm/80">
                         <p class="text-[10px] text-ink-muted font-bold uppercase tracking-wider">Fecha de Siembra</p>
-                        <p class="text-base font-bold text-canopy">${tree.planting_date}</p>
+                        <p class="text-base font-bold text-canopy">${escapeHTML(tree.planting_date)}</p>
                     </div>
                     <div class="bg-canvas p-4 rounded-2xl border border-borderWarm/80">
                         <p class="text-[10px] text-ink-muted font-bold uppercase tracking-wider">Estado en Territorio</p>
@@ -1446,7 +1457,7 @@ function renderTreeProfile(code) {
                                         ${idx === 0 ? 'Siembra Inicial' : `Foto #${idx + 1}`}
                                     </span>
                                     <p class="text-[10px] text-ink-muted font-mono mt-0.5">${p.created_at ? p.created_at.split('T')[0] : ''}</p>
-                                    ${p.notes ? `<p class="text-[9px] text-ink-muted italic truncate max-w-full" title="${p.notes}">${p.notes}</p>` : ''}
+                                    ${p.notes ? `<p class="text-[9px] text-ink-muted italic truncate max-w-full" title="${escapeHTML(p.notes)}">${escapeHTML(p.notes)}</p>` : ''}
                                 </div>
                             </div>
                         `).join('')}
@@ -1456,7 +1467,7 @@ function renderTreeProfile(code) {
                 ${tree.notes ? `
                 <div>
                     <h3 class="text-xs font-bold text-canopy uppercase tracking-wider mb-1">Notas de la siembra:</h3>
-                    <p class="text-ink-muted bg-canvas p-4 rounded-xl text-xs italic border border-borderWarm">${tree.notes}</p>
+                    <p class="text-ink-muted bg-canvas p-4 rounded-xl text-xs italic border border-borderWarm">${escapeHTML(tree.notes)}</p>
                 </div>
                 ` : ''}
 
@@ -1882,51 +1893,51 @@ function renderAdminDashboard() {
                     <img src="${t.primary_photo_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80'}" 
                          onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80';"
                          class="w-10 h-10 object-cover rounded-xl border border-borderWarm shadow-sm cursor-pointer hover:scale-105 transition-transform"
-                         onclick="showView('arbol', {code: '${t.code}'})" title="Ver Ficha y Foto Completa">
+                         onclick="showView('arbol', {code: '${escapeHTML(t.code)}'})" title="Ver Ficha y Foto Completa">
                 </td>
                 <td class="py-3 px-4 font-mono font-bold text-canopy">
-                    ${t.code}
+                    ${escapeHTML(t.code)}
                     <br>
-                    <span class="inline-block mt-1 px-2 py-0.5 bg-canvas text-canopy text-[10px] rounded-md font-bold border border-borderWarm" title="PIN de Verificación">PIN: ${t.pin || t.security_pin || '----'}</span>
+                    <span class="inline-block mt-1 px-2 py-0.5 bg-canvas text-canopy text-[10px] rounded-md font-bold border border-borderWarm" title="PIN de Verificación">PIN: ${escapeHTML(t.pin || t.security_pin || '----')}</span>
                 </td>
-                <td class="py-3 px-4 font-semibold text-canopy">${t.species_name}</td>
+                <td class="py-3 px-4 font-semibold text-canopy">${escapeHTML(t.species_name)}</td>
                 <td class="py-3 px-4">
-                    <div class="font-bold text-canopy">${t.planter_name}</div>
-                    <div class="text-xs text-emerald-700 font-mono">${t.email || ''} ${t.identity_card ? '• ' + t.identity_card : ''}</div>
+                    <div class="font-bold text-canopy">${escapeHTML(t.planter_name)}</div>
+                    <div class="text-xs text-emerald-700 font-mono">${escapeHTML(t.email || '')} ${t.identity_card ? '• ' + escapeHTML(t.identity_card) : ''}</div>
                     <span class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-semibold border ${planterBadge.badgeClass}">
-                        ${planterBadge.title} (${planterTreeCount})
+                        ${escapeHTML(planterBadge.title)} (${planterTreeCount})
                     </span>
                 </td>
-            <td class="py-3 px-4">${t.province}</td>
-            <td class="py-3 px-4 font-mono text-[11px]">${t.planting_date}</td>
+            <td class="py-3 px-4">${escapeHTML(t.province)}</td>
+            <td class="py-3 px-4 font-mono text-[11px]">${escapeHTML(t.planting_date)}</td>
             <td class="py-3 px-4">
                 <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${badgeClass}">
                     ${statusLabel}
                 </span>
             </td>
             <td class="py-3 px-4 text-right space-x-1 whitespace-nowrap">
-                <button onclick="openCertificateModal('${t.code}')" class="px-2.5 py-1 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 shadow-sm transition-colors" title="Generar certificado">
+                <button onclick="openCertificateModal('${escapeHTML(t.code)}')" class="px-2.5 py-1 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 shadow-sm transition-colors cursor-pointer" title="Generar certificado">
                     Certificado
                 </button>
-                <button onclick="focusTreeOnMap('${t.code}')" class="px-2.5 py-1 bg-canvas border border-borderWarm text-canopy hover:bg-stone-100 text-xs font-semibold rounded-lg transition-colors" title="Ajustar posición en el mapa">
+                <button onclick="focusTreeOnMap('${escapeHTML(t.code)}')" class="px-2.5 py-1 bg-canvas border border-borderWarm text-canopy hover:bg-stone-100 text-xs font-semibold rounded-lg transition-colors cursor-pointer" title="Ajustar posición en el mapa">
                     Reubicar
                 </button>
                 ${!isApproved ? `
-                    <button onclick="updateTreeStatus('${t.id}', 'approved')" class="px-2.5 py-1 bg-canopy text-white text-xs font-semibold rounded-lg hover:bg-canopy-light shadow-sm transition-colors" title="Aprobar árbol">
+                    <button onclick="updateTreeStatus('${escapeHTML(t.id)}', 'approved')" class="px-2.5 py-1 bg-canopy text-white text-xs font-semibold rounded-lg hover:bg-canopy-light shadow-sm transition-colors cursor-pointer" title="Aprobar árbol">
                         Aprobar
                     </button>
                 ` : ''}
                 ${(!isDead && !isRejected) ? `
-                    <button onclick="updateTreeStatus('${t.id}', 'dead')" class="px-2.5 py-1 bg-stone-700 text-white text-xs font-semibold rounded-lg hover:bg-stone-800 transition-colors" title="Dar de baja árbol no sobreviviente">
+                    <button onclick="updateTreeStatus('${escapeHTML(t.id)}', 'dead')" class="px-2.5 py-1 bg-stone-700 text-white text-xs font-semibold rounded-lg hover:bg-stone-800 transition-colors cursor-pointer" title="Dar de baja árbol no sobreviviente">
                         Dar de Baja
                     </button>
                 ` : ''}
                 ${!isRejected ? `
-                    <button onclick="updateTreeStatus('${t.id}', 'rejected')" class="px-2.5 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-lg hover:bg-red-200 transition-colors" title="Rechazar siembra">
+                    <button onclick="updateTreeStatus('${escapeHTML(t.id)}', 'rejected')" class="px-2.5 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-lg hover:bg-red-200 transition-colors cursor-pointer" title="Rechazar siembra">
                         Rechazar
                     </button>
                 ` : `
-                    <button onclick="deleteTree('${t.id}')" class="px-2.5 py-1 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 shadow-sm transition-colors" title="Eliminar registro permanentemente">
+                    <button onclick="deleteTree('${escapeHTML(t.id)}')" class="px-2.5 py-1 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 shadow-sm transition-colors cursor-pointer" title="Eliminar registro permanentemente">
                         Eliminar
                     </button>
                 `}
