@@ -13,7 +13,7 @@ let state = {
     markerClusterGroup: null,
     currentFormCoords: { lat: 8.11, lng: -80.97 },
     userMarker: null,
-    isAdminLoggedIn: sessionStorage.getItem('fj_admin_logged') === 'true',
+    isAdminLoggedIn: false, // SOC H3: Nunca asumir verdadero sin verificar token JWT en servidor de Supabase
     selectedPhotos: []
 };
 
@@ -35,6 +35,33 @@ async function initApp() {
             console.log('[EmailJS] SDK inicializado correctamente.');
         } catch (e) {
             console.warn('[EmailJS] Error inicializando SDK:', e);
+        }
+    }
+
+    // 0.2 Verificación asíncrona de sesión con Supabase Auth (SOC H3)
+    const sb = getSupabaseClient();
+    if (sb && sb.auth) {
+        try {
+            const session = await getAuthenticatedAdminSession();
+            state.isAdminLoggedIn = !!session;
+            if (!session) {
+                sessionStorage.removeItem('fj_admin_logged');
+            }
+
+            sb.auth.onAuthStateChange(async (event, session) => {
+                state.isAdminLoggedIn = !!(session && session.user);
+                if (!state.isAdminLoggedIn) {
+                    sessionStorage.removeItem('fj_admin_logged');
+                    if (state.currentView === 'admin') {
+                        renderAdminDashboard();
+                    }
+                } else if (state.currentView === 'admin') {
+                    await renderAdminDashboard();
+                }
+                if (state.map) renderMapMarkers();
+            });
+        } catch (authInitErr) {
+            console.warn('[Auth] Error al inicializar observador de autenticación:', authInitErr);
         }
     }
 
@@ -111,41 +138,46 @@ function getSupabaseClient() {
     return supabaseClient;
 }
 
+// Verificación criptográfica oficial en el servidor de sesión de Administrador (SOC H3)
+async function getAuthenticatedAdminSession() {
+    const sb = getSupabaseClient();
+    if (!sb || !sb.auth) return null;
+    try {
+        const { data: { session }, error } = await sb.auth.getSession();
+        if (error || !session || !session.user || !session.access_token) {
+            return null;
+        }
+        return session;
+    } catch (e) {
+        console.warn('[Seguridad] Error verificando sesión en Supabase:', e);
+        return null;
+    }
+}
+
 async function loadInitialData() {
     const sb = getSupabaseClient();
     if (sb) {
         try {
-            let { data: treesData, error: treesErr } = await sb.from('trees').select('*, tree_photos(*)');
-            if (treesErr || !treesData || treesData.length === 0) {
-                const res = await sb.from('public_trees').select('*');
-                treesData = res.data;
-                treesErr = res.error;
-            }
+            // SEGURIDAD / AUDITORÍA SOC (H1):
+            // Visitantes y mapa público consumen ÚNICAMENTE la vista pública 'public_trees'.
+            // Esta vista omite intencionalmente cédulas (identity_card), emails, teléfonos y PINs.
+            const { data: publicTrees, error: publicErr } = await sb.from('public_trees').select('*');
 
-            if (!treesErr && treesData && treesData.length > 0) {
-                // Supabase Cloud es la Fuente Única de Verdad (Single Source of Truth)
-                state.trees = treesData.map(t => {
-                    let photosList = (t.tree_photos && Array.isArray(t.tree_photos)) ? t.tree_photos : [];
+            if (!publicErr && publicTrees && publicTrees.length > 0) {
+                state.trees = publicTrees.map(t => {
                     let photoUrl = t.primary_photo_url;
-                    if (!photoUrl && photosList.length > 0) {
-                        const primary = photosList.find(p => p.is_primary) || photosList[0];
-                        if (primary && primary.url) {
-                            photoUrl = primary.url;
-                        }
-                    }
-                    if (!photosList.length && photoUrl) {
-                        photosList = [{
-                            id: 'photo-init-' + t.id,
-                            url: photoUrl,
-                            created_at: t.planting_date || t.created_at || new Date().toISOString().split('T')[0],
-                            notes: 'Siembra inicial'
-                        }];
-                    }
+                    let photosList = photoUrl ? [{
+                        id: 'photo-init-' + t.id,
+                        url: photoUrl,
+                        created_at: t.planting_date || t.created_at || new Date().toISOString().split('T')[0],
+                        notes: 'Siembra inicial'
+                    }] : [];
+
                     return {
                         ...t,
-                        status: t.status || 'approved',
-                        pin: t.pin || t.security_pin || '1234',
-                        species_name: t.custom_species_name || t.display_species || t.species_name || 'Guayacán Morado',
+                        planter_name: t.public_name || 'Sembrador',
+                        status: 'approved',
+                        species_name: t.display_species || t.species_name || 'Guayacán',
                         primary_photo_url: photoUrl || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80',
                         tree_photos: photosList
                     };
@@ -412,13 +444,6 @@ function showView(viewId, params = {}) {
         renderTreeProfile(params.code);
     } else if (viewId === 'admin') {
         renderAdminDashboard();
-        // Cargar datos frescos en vivo desde Supabase Cloud para mostrar pendientes al instante
-        const sb = getSupabaseClient();
-        if (sb && navigator.onLine) {
-            loadInitialData().then(() => {
-                renderAdminDashboard();
-            }).catch(err => console.warn('Error al refrescar datos en admin:', err));
-        }
     }
 }
 
@@ -1301,7 +1326,7 @@ async function sendPlanterEmailNotification(tree) {
             planter_name: tree.planter_name,
             name: tree.planter_name,
             tree_code: tree.code,
-            pin: tree.pin || '1234',
+            pin: tree.pin || '----',
             species_name: tree.species_name,
             province: tree.province,
             planting_date: tree.planting_date,
@@ -1548,7 +1573,7 @@ function closePINModal() {
     pendingVerificationCode = null;
 }
 
-function submitPINVerification() {
+async function submitPINVerification() {
     if (!pendingVerificationCode) return;
 
     const inputPinEl = document.getElementById('input-verify-pin');
@@ -1563,16 +1588,33 @@ function submitPINVerification() {
         return;
     }
 
-    const tree = state.trees.find(t => t.code === pendingVerificationCode || t.id === pendingVerificationCode);
-    const expectedPin = tree ? (tree.pin || tree.security_pin || '1234') : '1234';
+    // AUDITORÍA SOC H2: Verificación criptográfica vía backend RPC de Supabase
+    // Elimina valores default '1234' y no expone columnas de PIN al público
+    let isPinValid = false;
+    const sb = getSupabaseClient();
 
-    if (expectedPin && String(expectedPin).trim() === enteredPin) {
+    if (sb && navigator.onLine) {
+        try {
+            const { data, error } = await sb.rpc('verify_tree_pin', {
+                p_code: pendingVerificationCode,
+                p_pin: enteredPin
+            });
+            if (!error && data === true) {
+                isPinValid = true;
+            }
+        } catch (e) {
+            console.warn('[PIN] Error en verificación con servidor:', e);
+        }
+    }
+
+    // Coincidencia con árbol registrado en la sesión local actual
+    if (!isPinValid && lastSubmittedTree && (lastSubmittedTree.code === pendingVerificationCode || lastSubmittedTree.id === pendingVerificationCode) && lastSubmittedTree.pin === enteredPin) {
+        isPinValid = true;
+    }
+
+    if (isPinValid) {
         try {
             let myCodes = JSON.parse(localStorage.getItem('fj_my_tree_codes') || '[]');
-            if (tree) {
-                if (tree.code && !myCodes.includes(tree.code)) myCodes.push(tree.code);
-                if (tree.id && !myCodes.includes(tree.id)) myCodes.push(tree.id);
-            }
             if (pendingVerificationCode && !myCodes.includes(pendingVerificationCode)) {
                 myCodes.push(pendingVerificationCode);
             }
@@ -1581,7 +1623,7 @@ function submitPINVerification() {
             console.warn('Error al guardar código desbloqueado:', e);
         }
 
-        const targetCode = tree ? tree.code : pendingVerificationCode;
+        const targetCode = pendingVerificationCode;
         closePINModal();
         showToast('PIN verificado. Acceso de sembrador habilitado para este árbol.');
         renderTreeProfile(targetCode);
@@ -1840,23 +1882,69 @@ async function handleFollowUpPhotoSubmit(e) {
     renderTreeProfile(code);
 }
 
-// Renderizar Panel de Administración con Autenticación
-function renderAdminDashboard() {
+// Carga exclusiva de datos privados para administradores legítimos con token JWT
+async function loadAdminData() {
+    const sb = getSupabaseClient();
+    const session = await getAuthenticatedAdminSession();
+    if (!sb || !session) {
+        state.isAdminLoggedIn = false;
+        sessionStorage.removeItem('fj_admin_logged');
+        return;
+    }
+
+    try {
+        const { data: adminTrees, error: adminErr } = await sb.from('trees').select('*, tree_photos(*)');
+        if (!adminErr && adminTrees && adminTrees.length > 0) {
+            state.trees = adminTrees.map(t => {
+                let photosList = (t.tree_photos && Array.isArray(t.tree_photos)) ? t.tree_photos : [];
+                let photoUrl = t.primary_photo_url;
+                if (!photoUrl && photosList.length > 0) {
+                    const primary = photosList.find(p => p.is_primary) || photosList[0];
+                    if (primary && primary.url) photoUrl = primary.url;
+                }
+                return {
+                    ...t,
+                    status: t.status || 'pending',
+                    species_name: t.custom_species_name || t.display_species || t.species_name || 'Guayacán',
+                    primary_photo_url: photoUrl || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80',
+                    tree_photos: photosList
+                };
+            });
+            updateStatsCounter();
+        }
+    } catch (err) {
+        console.error('[Admin] Error al cargar datos con JWT:', err);
+    }
+}
+
+// Renderizar Panel de Administración con Autenticación Criptográfica Oficial
+async function renderAdminDashboard() {
     const adminContentContainer = document.getElementById('admin-content-container');
     const loginContainer = document.getElementById('admin-login-container');
 
     if (!adminContentContainer || !loginContainer) return;
 
-    if (!state.isAdminLoggedIn) {
-        // Mostrar pantalla de Login de Administrador y ocultar datos sensibles
+    // AUDITORÍA SOC H3: Verificar token de sesión oficial en el servidor de Supabase Auth
+    // Inutiliza cualquier intento de manipulación por consola (ej. sessionStorage.setItem('fj_admin_logged', 'true'))
+    const session = await getAuthenticatedAdminSession();
+
+    if (!session) {
+        state.isAdminLoggedIn = false;
+        sessionStorage.removeItem('fj_admin_logged');
         loginContainer.classList.remove('hidden');
         adminContentContainer.classList.add('hidden');
+        const tableBody = document.getElementById('admin-table-body');
+        if (tableBody) tableBody.innerHTML = '';
         return;
     }
 
-    // Administrador autenticado: mostrar panel completo
+    state.isAdminLoggedIn = true;
+    sessionStorage.setItem('fj_admin_logged', 'true');
     loginContainer.classList.add('hidden');
     adminContentContainer.classList.remove('hidden');
+
+    // Cargar datos administrativos autenticados desde la base de datos (con cédulas y correos)
+    await loadAdminData();
 
     const tableBody = document.getElementById('admin-table-body');
     if (!tableBody) return;
@@ -1988,57 +2076,35 @@ async function handleAdminLogin(e) {
 
     if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = 'Verificando credenciales...';
+        submitBtn.innerHTML = 'Verificando con servidor...';
     }
 
     try {
         const sb = getSupabaseClient();
-        
-        // 1. Intento de autenticación oficial mediante Supabase Auth (Servidor)
-        if (sb && navigator.onLine) {
-            try {
-                const { data, error } = await sb.auth.signInWithPassword({
-                    email: email,
-                    password: pass
-                });
-
-                if (!error && data && data.user) {
-                    state.isAdminLoggedIn = true;
-                    sessionStorage.setItem('fj_admin_logged', 'true');
-                    renderAdminDashboard();
-                    if (state.map) renderMapMarkers();
-                    showToast('Sesión de Administrador iniciada correctamente.');
-                    document.getElementById('admin-email').value = '';
-                    document.getElementById('admin-password').value = '';
-                    return;
-                }
-            } catch (authErr) {
-                console.warn('[Supabase Auth] Fallo en intento de autenticación en servidor:', authErr);
-            }
-        }
-
-        // 2. Verificación criptográfica segura mediante Hash SHA-256 (Sin almacenar contraseñas en texto plano)
-        const encoder = new TextEncoder();
-        const dataBuffer = encoder.encode(email + ':' + pass);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-        // Hash SHA-256 criptográfico de credenciales autorizadas
-        const AUTH_HASH = '2d152e05f97d077a565ec47919307320b571388b9d7bf56410869b6850333ee0';
-
-        if (hashHex === AUTH_HASH) {
-            state.isAdminLoggedIn = true;
-            sessionStorage.setItem('fj_admin_logged', 'true');
-            renderAdminDashboard();
-            if (state.map) renderMapMarkers();
-            showToast('Sesión de Administrador iniciada.');
-            document.getElementById('admin-email').value = '';
-            document.getElementById('admin-password').value = '';
+        if (!sb || !navigator.onLine) {
+            alert('No hay conexión con el servidor de autenticación.');
             return;
         }
 
-        alert('Correo electrónico o contraseña de administrador incorrectos.');
+        // Autenticación oficial criptográfica exclusiva en el servidor (Supabase Auth)
+        // Se elimina cualquier fallback de hash offline (SOC H3)
+        const { data, error } = await sb.auth.signInWithPassword({
+            email: email,
+            password: pass
+        });
+
+        if (error || !data || !data.session) {
+            alert('Correo electrónico o contraseña de administrador incorrectos.');
+            return;
+        }
+
+        state.isAdminLoggedIn = true;
+        sessionStorage.setItem('fj_admin_logged', 'true');
+        await renderAdminDashboard();
+        if (state.map) renderMapMarkers();
+        showToast('Sesión de Administrador iniciada correctamente.');
+        document.getElementById('admin-email').value = '';
+        document.getElementById('admin-password').value = '';
     } catch (err) {
         console.error('Error durante el inicio de sesión administrativo:', err);
         alert('Ocurrió un error al procesar el inicio de sesión.');
@@ -2050,9 +2116,19 @@ async function handleAdminLogin(e) {
     }
 }
 
-function logoutAdmin() {
+async function logoutAdmin() {
     state.isAdminLoggedIn = false;
-    sessionStorage.setItem('fj_admin_logged', 'false');
+    sessionStorage.removeItem('fj_admin_logged');
+    const sb = getSupabaseClient();
+    if (sb && sb.auth) {
+        try {
+            await sb.auth.signOut();
+        } catch (e) {
+            console.warn('[Admin] Error al cerrar sesión en Supabase:', e);
+        }
+    }
+    // Recargar únicamente la vista pública segura (sin cédulas ni correos)
+    await loadInitialData();
     renderAdminDashboard();
     if (state.map) renderMapMarkers();
     showToast('Sesión de Administrador cerrada.');
